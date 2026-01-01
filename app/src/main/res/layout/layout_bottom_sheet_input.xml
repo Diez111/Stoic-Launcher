@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@drawable/shape_bottom_sheet">
+
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Title"
+        android:textColor="@android:color/white"
+        android:textSize="20sp"
+        android:fontFamily="sans-serif-medium"
+        android:layout_marginBottom="16dp" />
+
+    <EditText
+        android:id="@+id/et_input"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="@drawable/shape_input_field"
+        android:textColor="@android:color/black"
+        android:padding="16dp"
+        android:textSize="16sp"
+        android:hint="..."
+        android:textColorHint="#8E8E93"
+        android:singleLine="true"
+        android:imeOptions="actionDone"
+        android:layout_marginBottom="24dp" />
+        
+    <TextView
+        android:id="@+id/btn_confirm"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/save"
+        android:textColor="@android:color/white"
+        android:textSize="16sp"
+        android:fontFamily="sans-serif-medium"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="@drawable/shape_bottom_sheet" 
+        android:backgroundTint="#333333" /> 
+        <!-- Monochromatic Dark Grey, better visibility than pure black on black screen --> 
+        <!-- Reusing shape for pill button look or rounded corners -->
+
+</LinearLayout>

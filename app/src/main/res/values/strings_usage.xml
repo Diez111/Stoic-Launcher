@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Removed duplicate search_hint -->
+    <string name="digital_wellbeing">Bienestar Digital</string>
+    <string name="daily_limit">Límite Diario</string>
+    <string name="limit_disabled">Desactivado</string>
+    <string name="minutes_format">%d minutos</string>
+</resources>

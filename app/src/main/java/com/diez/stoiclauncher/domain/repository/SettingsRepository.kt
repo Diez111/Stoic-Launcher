@@ -1,0 +1,46 @@
+package com.diez.stoiclauncher.domain.repository
+
+import kotlinx.coroutines.flow.Flow
+
+interface SettingsRepository {
+    val favoritePackages: Flow<Set<String>>
+    suspend fun toggleAppFavorite(packageName: String)
+    suspend fun isAppFavorite(packageName: String): Boolean
+    
+    val isWallpaperEnabled: Flow<Boolean>
+    suspend fun setWallpaperEnabled(enabled: Boolean)
+
+    val wallpaperUri: Flow<String?>
+    suspend fun setWallpaperUri(uri: String?)
+
+    // Removed Grid Settings
+    
+    val accentColor: Flow<Int>
+    suspend fun setAccentColor(color: Int)
+    
+    // Widget persistence
+    suspend fun saveWidgetConfig(config: com.diez.stoiclauncher.domain.model.WidgetConfig)
+    suspend fun getAllWidgetConfigs(): List<com.diez.stoiclauncher.domain.model.WidgetConfig>
+    suspend fun deleteWidgetConfig(widgetId: Int)
+    suspend fun clearAllWidgetConfigs()
+    val widgetConfigs: Flow<List<com.diez.stoiclauncher.domain.model.WidgetConfig>>
+    
+    val gestureMappingsFlow: Flow<Map<String, String>>
+    suspend fun setGestureMapping(trigger: String, action: String)
+    
+    val appShortcutsFlow: Flow<Map<String, String>>
+    suspend fun setAppShortcut(position: String, packageName: String?)
+    
+    // Per-App Usage Limits
+    fun getAppUsageLimit(packageName: String): Flow<Int>
+    suspend fun setAppUsageLimit(packageName: String, minutes: Int)
+    val allAppUsageLimits: Flow<Map<String, Int>>
+    
+    // Global limit (Deprecated/Unused)
+    val appUsageLimitMinutes: Flow<Int> 
+    suspend fun setAppUsageLimitMinutes(minutes: Int)
+    
+    // Group View Mode
+    val isGroupGridMode: Flow<Boolean>
+    suspend fun setGroupGridMode(isGrid: Boolean)
+}

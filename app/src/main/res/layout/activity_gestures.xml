@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingHorizontal="24dp"
+        android:paddingTop="56dp">
+
+        <TextView
+            android:id="@+id/tv_gestures_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/gestures_title"
+            android:textColor="@android:color/white"
+            android:textSize="36sp"
+            android:fontFamily="sans-serif-thin"
+            android:layout_marginBottom="56dp" />
+
+        <!-- ACCESSIBILITY Header -->
+        <TextView
+            android:id="@+id/tv_header_accessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/accessibility_service_title"
+            android:textColor="#66FFFFFF"
+            android:textSize="12sp"
+            android:letterSpacing="0.1"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="24dp" />
+
+        <LinearLayout
+            android:id="@+id/btn_enable_accessibility"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?selectableItemBackground"
+            android:layout_marginBottom="48dp">
+
+            <TextView
+                android:id="@+id/tv_label_accessibility"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/accessibility_service_desc"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-light" />
+            
+            <TextView
+                android:id="@+id/tv_accessibility_status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Desactivado"
+                android:textColor="#99FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- TRIGGERS Header -->
+        <TextView
+            android:id="@+id/tv_header_triggers"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="DISPARADORES"
+            android:textColor="#66FFFFFF"
+            android:textSize="12sp"
+            android:letterSpacing="0.1"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="24dp" />
+
+        <!-- Double Tap Trigger -->
+        <LinearLayout
+            android:id="@+id/row_double_tap"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?selectableItemBackground"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/trigger_double_tap"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-light" />
+            
+            <TextView
+                android:id="@+id/tv_action_double_tap"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/action_none"
+                android:textColor="#99FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Swipe Down Trigger -->
+        <LinearLayout
+            android:id="@+id/row_swipe_down"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?selectableItemBackground"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/trigger_swipe_down"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-light" />
+            
+            <TextView
+                android:id="@+id/tv_action_swipe_down"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/action_none"
+                android:textColor="#99FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Vol Up Trigger -->
+        <LinearLayout
+            android:id="@+id/row_vol_up"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?selectableItemBackground"
+            android:layout_marginBottom="32dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/trigger_vol_up_long"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-light" />
+            
+            <TextView
+                android:id="@+id/tv_action_vol_up"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/action_none"
+                android:textColor="#99FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+
+        <!-- Vol Down Trigger -->
+        <LinearLayout
+            android:id="@+id/row_vol_down"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:background="?selectableItemBackground"
+            android:layout_marginBottom="48dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/trigger_vol_down_long"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:fontFamily="sans-serif-light" />
+            
+            <TextView
+                android:id="@+id/tv_action_vol_down"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/action_none"
+                android:textColor="#99FFFFFF"
+                android:textSize="14sp"
+                android:layout_marginTop="4dp" />
+        </LinearLayout>
+        
+        <Space
+            android:layout_width="match_parent"
+            android:layout_height="80dp" />
+
+    </LinearLayout>
+</ScrollView>
