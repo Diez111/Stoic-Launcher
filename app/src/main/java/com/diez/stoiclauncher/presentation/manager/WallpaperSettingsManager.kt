@@ -3,6 +3,7 @@ package com.diez.stoiclauncher.presentation.manager
 import android.app.Activity
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import androidx.core.view.WindowCompat
@@ -60,7 +61,7 @@ class WallpaperSettingsManager(private val activity: Activity) {
                     applySystemWallpaper(window, onLightCalculated)
                 }
             } catch (e: Exception) {
-                // Formatting error, fallback to system
+                Log.e(TAG, "Error loading custom wallpaper", e)
                 applySystemWallpaper(window, onLightCalculated)
             }
         } else {
@@ -80,6 +81,10 @@ class WallpaperSettingsManager(private val activity: Activity) {
         // AGGRESSIVE CLEARING
         window.setBackgroundDrawable(null)
         window.decorView.background = null
+    }
+
+    companion object {
+        private const val TAG = "WallpaperManager"
     }
 
     private suspend fun handleSolidColorMode(window: android.view.Window, accentColor: Int, onLightCalculated: (Boolean) -> Unit) {

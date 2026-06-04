@@ -4,10 +4,12 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.provider.Settings
+import android.util.Log
 import com.diez.stoiclauncher.domain.model.AppModel
 import com.diez.stoiclauncher.domain.repository.SettingsRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.util.Calendar
 
 class AppUsageManager(
@@ -36,32 +38,25 @@ class AppUsageManager(
             intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK
             context.startActivity(intent)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e("AppUsageManager", "Error opening usage access settings", e)
         }
     }
 
     /**
      * Checks if the app is allowed to start based on daily limits.
-     * Returns TRUE if allowed, FALSE if blocked.
+     * Suspending version — use from coroutine to avoid main-thread blocking.
      */
-    fun isAppRunAllowed(app: AppModel): Boolean {
-        // 1. Check exemptions (Work/Study/Investment)
-        if (isExempt(app)) return true
+    suspend fun isAppRunAllowed(app: AppModel): Boolean = withContext(Dispatchers.IO) {
+        if (isExempt(app)) return@withContext true
+        if (!hasPermission()) return@withContext true
         
-        // 2. Check permission
-        if (!hasPermission()) return true // Fail safe: if no permission, don't block
+        val limitMinutes = settingsRepository.getAppUsageLimit(app.packageName).first()
+        if (limitMinutes <= 0) return@withContext true
         
-        // 3. Get limit from settings (Specific to Package)
-        val limitMinutes = runBlocking { 
-            settingsRepository.getAppUsageLimit(app.packageName).first() 
-        }
-        if (limitMinutes <= 0) return true // No limit set for this app
-        
-        // 4. Check actual usage
         val usageMillis = getDailyUsage(app.packageName)
         val limitMillis = limitMinutes * 60 * 1000L
         
-        return usageMillis < limitMillis
+        usageMillis < limitMillis
     }
     
     private fun isExempt(app: AppModel): Boolean {
@@ -91,17 +86,21 @@ class AppUsageManager(
         return stats?.totalTimeInForeground ?: 0L
     }
     
-    fun getRemainingTime(app: AppModel): String {
-        if (isExempt(app)) return "∞"
+    suspend fun getRemainingTime(app: AppModel): String = withContext(Dispatchers.IO) {
+        if (isExempt(app)) return@withContext "∞"
         
-        val limitMinutes = runBlocking { settingsRepository.getAppUsageLimit(app.packageName).first() }
-        if (limitMinutes <= 0) return "∞"
+        val limitMinutes = settingsRepository.getAppUsageLimit(app.packageName).first()
+        if (limitMinutes <= 0) return@withContext "∞"
         
         val usageMillis = getDailyUsage(app.packageName)
         val limitMillis = limitMinutes * 60 * 1000L
         val remainingMillis = (limitMillis - usageMillis).coerceAtLeast(0)
         
         val minutes = (remainingMillis / 1000 / 60).toInt()
-        return "${minutes}m"
+        "${minutes}m"
+    }
+
+    companion object {
+        private const val TAG = "AppUsageManager"
     }
 }

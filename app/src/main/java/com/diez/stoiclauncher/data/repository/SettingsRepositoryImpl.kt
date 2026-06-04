@@ -39,11 +39,15 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
 
     private fun getFavoritesFromPrefs(): Set<String> {
         val raw = prefs.getStringSet(KEY_FAVORITES, emptySet()) ?: emptySet()
-        // MIGRATION FIX: Strip "|0", "|hash", etc. to ensure matches with simplified AppModel.uniqueId
-        return raw.map { 
+        val cleaned = raw.map { 
              if (it.startsWith("group:")) it 
              else it.split("|")[0] 
         }.toSet()
+        // Persist migration result so next reads are clean
+        if (cleaned != raw) {
+            prefs.edit().putStringSet(KEY_FAVORITES, cleaned).apply()
+        }
+        return cleaned
     }
 
     private val _wallpaperFlow = MutableStateFlow<Boolean>(prefs.getBoolean(KEY_WALLPAPER_ENABLED, true))
@@ -207,6 +211,57 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
         _groupGridModeFlow.value = isGrid
     }
 
+    // Category Management
+    private val _hiddenCategoriesFlow = MutableStateFlow<Set<String>>(getHiddenCategoriesFromPrefs())
+    override val hiddenCategories: Flow<Set<String>> = _hiddenCategoriesFlow
+
+    override suspend fun toggleHiddenCategory(categoryName: String) {
+        val current = getHiddenCategoriesFromPrefs().toMutableSet()
+        if (current.contains(categoryName)) {
+            current.remove(categoryName)
+        } else {
+            current.add(categoryName)
+        }
+        prefs.edit().putStringSet(KEY_HIDDEN_CATEGORIES, current).apply()
+        _hiddenCategoriesFlow.value = current
+    }
+
+    private fun getHiddenCategoriesFromPrefs(): Set<String> {
+        return prefs.getStringSet(KEY_HIDDEN_CATEGORIES, emptySet()) ?: emptySet()
+    }
+
+    private val _customCategoryNamesFlow = MutableStateFlow<Map<String, String>>(getCustomCategoryNamesFromPrefs())
+    override val customCategoryNames: Flow<Map<String, String>> = _customCategoryNamesFlow
+
+    override suspend fun setCustomCategoryName(originalName: String, customName: String) {
+        val current = getCustomCategoryNamesFromPrefs().toMutableMap()
+        current[originalName] = customName
+        val jsonString = Json.encodeToString(current)
+        prefs.edit().putString(KEY_CUSTOM_CATEGORY_NAMES, jsonString).apply()
+        _customCategoryNamesFlow.value = current
+    }
+
+    override suspend fun removeCustomCategoryName(originalName: String) {
+        val current = getCustomCategoryNamesFromPrefs().toMutableMap()
+        current.remove(originalName)
+        val jsonString = Json.encodeToString(current)
+        prefs.edit().putString(KEY_CUSTOM_CATEGORY_NAMES, jsonString).apply()
+        _customCategoryNamesFlow.value = current
+    }
+
+    private fun getCustomCategoryNamesFromPrefs(): Map<String, String> {
+        return try {
+            val jsonString = prefs.getString(KEY_CUSTOM_CATEGORY_NAMES, null)
+            if (jsonString != null) {
+                Json.decodeFromString<Map<String, String>>(jsonString)
+            } else {
+                emptyMap()
+            }
+        } catch (e: Exception) {
+            emptyMap()
+        }
+    }
+
     companion object {
         private const val KEY_FAVORITES = "favorite_packages"
         private const val KEY_WALLPAPER_ENABLED = "wallpaper_enabled"
@@ -218,5 +273,7 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
         private const val KEY_USAGE_LIMIT = "app_usage_limit_minutes"
         private const val KEY_ALL_USAGE_LIMITS = "all_app_usage_limits"
         private const val KEY_GROUP_GRID_MODE = "group_grid_mode"
+        private const val KEY_HIDDEN_CATEGORIES = "hidden_categories"
+        private const val KEY_CUSTOM_CATEGORY_NAMES = "custom_category_names"
     }
 }

@@ -30,26 +30,12 @@ class WidgetsFragment : Fragment() {
         val emptyMessage = view.findViewById<TextView>(R.id.tv_empty_widgets)
         // Launch Clock
         tcClock.setOnClickListener {
-             try {
-                val intent = android.content.Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS)
-                startActivity(intent)
-             } catch (e: Exception) {
-                 // Fallback or ignore
-             }
+             com.diez.stoiclauncher.presentation.util.LaunchHelper.openClock(requireContext())
         }
         
         // Launch Calendar
         tcDate.setOnClickListener {
-             try {
-                val intent = android.content.Intent(android.content.Intent.ACTION_MAIN)
-                intent.addCategory(android.content.Intent.CATEGORY_APP_CALENDAR)
-                startActivity(intent)
-             } catch (e: Exception) {
-                 // Try generic calendar Intent
-                 val calIntent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                 calIntent.data = android.net.Uri.parse("content://com.android.calendar/time/")
-                 try { startActivity(calIntent) } catch (e2: Exception) {}
-             }
+             com.diez.stoiclauncher.presentation.util.LaunchHelper.openCalendar(requireContext())
         }
         
         // Widgets: This requires communication with Activity's WidgetManager
@@ -81,25 +67,26 @@ class WidgetsFragment : Fragment() {
             }
         }
         
-        // Color Sync Flow - usar mapeo EXPLÍCITO de accentColor
+        // Color Sync Flow
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.accentColor.collect { color ->
-                 val contentColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getTextColorForAccent(color)
-                 val secondaryColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getSecondaryTextColorForAccent(color)
+            kotlinx.coroutines.flow.combine(
+                viewModel.accentColor, viewModel.isWallpaperEnabled
+            ) { color, wallpaper -> color to wallpaper }
+            .collect { (color, isWallpaper) ->
+                 val contentColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getTextColorForAccent(color, isWallpaper)
+                 val secondaryColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getSecondaryTextColorForAccent(color, isWallpaper)
                  
                  (tcClock as? TextView)?.setTextColor(contentColor)
                  (tcDate as? TextView)?.setTextColor(secondaryColor)
                  emptyMessage.setTextColor(secondaryColor)
 
-                 // Refresh Widget Themes
                  val mainActivity = requireActivity() as? com.diez.stoiclauncher.presentation.MainActivity
-                 // Determine if the accent color implies a light background for widgets
                  val isLightBackground = com.diez.stoiclauncher.presentation.util.ColorHelper.isLightColor(color)
                  mainActivity?.widgetController?.refreshThemes(isLightBackground)
-            }
-        }
-        
-        // Hide empty message if widgets exist
+             }
+         }
+         
+         // Hide empty message if widgets exist
         widgetContainer.viewTreeObserver.addOnGlobalLayoutListener {
             emptyMessage.visibility = if (widgetContainer.childCount > 1) View.GONE else View.VISIBLE
         }

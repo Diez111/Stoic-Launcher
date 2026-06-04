@@ -1,212 +1,343 @@
 package com.diez.stoiclauncher.presentation.home.fragments
 
+import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
-import android.widget.FrameLayout
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.diez.stoiclauncher.R
-import com.diez.stoiclauncher.presentation.home.HomeViewModel
-import com.diez.stoiclauncher.presentation.home.AppAdapter
-import com.diez.stoiclauncher.presentation.home.AppListAdapter
-import com.diez.stoiclauncher.domain.model.AppModel
-import androidx.recyclerview.widget.LinearLayoutManager
-import kotlinx.coroutines.launch
-import androidx.lifecycle.lifecycleScope
-import kotlinx.coroutines.flow.collectLatest
-import com.diez.stoiclauncher.presentation.widget.WidgetManager
-import android.appwidget.AppWidgetManager
-import android.appwidget.AppWidgetHost
-import android.content.ComponentName
 import com.diez.stoiclauncher.StoicApplication
+import com.diez.stoiclauncher.domain.model.AppModel
+import com.diez.stoiclauncher.presentation.home.HomeViewModel
+import com.diez.stoiclauncher.presentation.util.AppLaunchHelper
+import com.diez.stoiclauncher.presentation.util.ColorHelper
+import com.diez.stoiclauncher.presentation.util.LaunchHelper
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.launch
 
 class HomeFragment : Fragment() {
 
-    private val viewModel: HomeViewModel by activityViewModels() // Share ViewModel with Activity
-    private lateinit var adapter: AppAdapter
-    private lateinit var appWidgetManager: AppWidgetManager
-    private lateinit var appWidgetHost: AppWidgetHost
-    private lateinit var settingsRepository: com.diez.stoiclauncher.domain.repository.SettingsRepository
-    private var widgetContainer: ViewGroup? = null
-    
-    companion object {
-        private const val APPWIDGET_HOST_ID = 1025
-    }
-    
-    // We need to manage widgets here or in Activity?
-    // Widgets are tricky in Fragments because AppWidgetHost needs Activity context and lifecycle.
-    // Ideally, keep WidgetHost in Activity and pass container to Fragment? Or accessible via interface.
-    // For simplicity, let's keep Widget logic simple or pass it down.
-    // Actually, WidgetHostView is a View, so we can add it here.
-    
-    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        return inflater.inflate(R.layout.fragment_home, container, false)
+    private val viewModel: HomeViewModel by activityViewModels()
+    private lateinit var rvBubbles: RecyclerView
+    private lateinit var bubbleAdapter: BubbleAdapter
+    private val matrix = ColorMatrix().apply { setSaturation(0f) }
+    private val monoFilter = ColorMatrixColorFilter(matrix)
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
+        val view = inflater.inflate(R.layout.fragment_home, container, false)
+        rvBubbles = view.findViewById(R.id.rv_bubbles)
+        return view
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
-        // Initialize widget components
-        val appContainer = (requireActivity().application as StoicApplication).container
-        settingsRepository = appContainer.settingsRepository
-        
+
         val tcClock = view.findViewById<View>(R.id.tc_clock)
         val tcDate = view.findViewById<View>(R.id.tc_date)
-        val rvFavorites = view.findViewById<RecyclerView>(R.id.rv_favorites)
-        widgetContainer = view.findViewById<ViewGroup>(R.id.widget_container)
-        val btnPhone = view.findViewById<View>(R.id.btn_phone)
-        val btnSettings = view.findViewById<View>(R.id.btn_settings)
+        val widgetContainer = view.findViewById<ViewGroup>(R.id.widget_container)
 
-        // Launch Clock
-        tcClock.setOnClickListener {
-             try {
-                val intent = android.content.Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS)
-                startActivity(intent)
-             } catch (e: Exception) {
-                 // Fallback or ignore
-             }
-        }
-        
-        // Launch Calendar
-        tcDate.setOnClickListener {
-             try {
-                val intent = android.content.Intent(android.content.Intent.ACTION_MAIN)
-                intent.addCategory(android.content.Intent.CATEGORY_APP_CALENDAR)
-                startActivity(intent)
-             } catch (e: Exception) {
-                 // Try generic calendar Intent
-                 val calIntent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                 calIntent.data = android.net.Uri.parse("content://com.android.calendar/time/")
-                 try { startActivity(calIntent) } catch (e2: Exception) {}
-             }
-        }
-        
-        // Shortcuts
-        btnPhone.setOnClickListener {
-             try {
-                 val intent = android.content.Intent(android.content.Intent.ACTION_DIAL)
-                 startActivity(intent)
-             } catch (e: Exception) {}
-        }
-        
-        btnSettings.setOnClickListener {
-            startActivity(android.content.Intent(requireContext(), com.diez.stoiclauncher.presentation.settings.SettingsActivity::class.java))
-        }
+        tcClock.setOnClickListener { LaunchHelper.openClock(requireContext()) }
+        tcDate.setOnClickListener { LaunchHelper.openCalendar(requireContext()) }
 
-        // Adapter for Favorites 
-        adapter = AppAdapter(
-            onAppClick = { app ->
-                 if (app.isGroup) {
-                     showGroupDialog(app)
-                 } else {
-                     com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app)
-                 }
-            },
-            onAppLongClick = { app ->
-                 (requireActivity() as? AppActionListener)?.onAppLongClick(app, "FAVORITES") ?: false
-            },
-            hideLabelsForSingleApps = true
+        val settingsRepo = (requireActivity().application as StoicApplication).container.settingsRepository
+
+        bubbleAdapter = BubbleAdapter(
+            monoFilter = monoFilter,
+            onBubbleClick = { category -> showCategoryDialog(category) },
+            onBubbleLongClick = { category -> showBubbleOptions(category); true }
         )
-        
-        rvFavorites.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 4)
-        rvFavorites.adapter = adapter
-        rvFavorites.setHasFixedSize(true) // Performance: size doesn't change
-        rvFavorites.setItemViewCacheSize(20) // Performance: cache more items
-        
+
+        rvBubbles.layoutManager = GridLayoutManager(requireContext(), 2)
+        rvBubbles.adapter = bubbleAdapter
+        rvBubbles.setHasFixedSize(true)
+        rvBubbles.isNestedScrollingEnabled = false
+        rvBubbles.overScrollMode = View.OVER_SCROLL_NEVER
+
+        // Combine all data sources for bubbles
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.favoritesState.collectLatest { apps ->
-                adapter.submitList(apps)
-            }
+            combine(
+                viewModel.uiState,
+                settingsRepo.hiddenCategories,
+                settingsRepo.customCategoryNames
+            ) { apps, hidden, customNames -> Triple(apps, hidden, customNames) }
+                .collectLatest { (apps, hidden, customNames) ->
+                    if (apps.isNotEmpty()) {
+                        val allCategories = com.diez.stoiclauncher.domain.util.AppCategorizer.groupByCategory(apps)
+                        val visibleCategories = allCategories.filter { !hidden.contains(it.name) }
+                            .map { cat ->
+                                val displayName = customNames[cat.name] ?: cat.name
+                                CategoryGroup(displayName, cat.apps, cat.name)
+                            }
+                        bubbleAdapter.submitCategories(visibleCategories)
+                    }
+                }
         }
-        
-        // Restore widgets from persistence via WidgetManager (Centralized)
+
         viewLifecycleOwner.lifecycleScope.launch {
-            settingsRepository.widgetConfigs.collectLatest { configs ->
+            combine(
+                viewModel.accentColor, viewModel.isWallpaperEnabled
+            ) { color, wallpaper -> color to wallpaper }
+                .collectLatest { (color, isWallpaper) ->
+                    val contentColor = ColorHelper.getTextColorForAccent(color, isWallpaper)
+                    val secondaryColor = ColorHelper.getSecondaryTextColorForAccent(color, isWallpaper)
+
+                    (tcClock as? TextView)?.setTextColor(contentColor)
+                    (tcDate as? TextView)?.setTextColor(secondaryColor)
+                    bubbleAdapter.updateColors(contentColor, secondaryColor)
+                }
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            settingsRepo.widgetConfigs.collectLatest { configs ->
                 widgetContainer?.let { container ->
-                    (requireActivity() as? com.diez.stoiclauncher.presentation.MainActivity)?.widgetController?.restoreWidgets(configs)
+                    (requireActivity() as? com.diez.stoiclauncher.presentation.MainActivity)
+                        ?.widgetController?.restoreWidgets(configs)
                 }
             }
         }
-        
-        // Widgets: This requires communication with Activity's WidgetManager
+
         (requireActivity() as? WidgetContainerProvider)?.attachWidgetContainer(widgetContainer!!)
-        
-        // Background Long Press for Options (Add Widget, etc)
+
         view.setOnLongClickListener {
-            showHomeOptions()
+            val options = listOf(
+                com.diez.stoiclauncher.presentation.common.MenuOption(getString(R.string.add_widget)),
+                com.diez.stoiclauncher.presentation.common.MenuOption(getString(R.string.settings))
+            )
+            com.diez.stoiclauncher.presentation.common.BottomSheetMenu(
+                "", options, viewModel.accentColor.value
+            ) { index ->
+                when (index) {
+                    0 -> (requireActivity() as? WidgetContainerProvider)?.requestAddWidget()
+                    1 -> startActivity(android.content.Intent(requireContext(),
+                        com.diez.stoiclauncher.presentation.settings.SettingsActivity::class.java))
+                }
+            }.show(parentFragmentManager, "home_options")
             true
         }
     }
-    
-    private fun showHomeOptions() {
-        val options = listOf(
-            com.diez.stoiclauncher.presentation.common.MenuOption(getString(R.string.add_widget)),
-            com.diez.stoiclauncher.presentation.common.MenuOption(getString(R.string.settings))
-        )
-        
-        val bottomSheet = com.diez.stoiclauncher.presentation.common.BottomSheetMenu(
-            "Home Options", 
-            options,
-            viewModel.accentColor.value
-        ) { index ->
-            when (index) {
-                0 -> (requireActivity() as? WidgetContainerProvider)?.requestAddWidget()
-                1 -> startActivity(android.content.Intent(requireContext(), com.diez.stoiclauncher.presentation.settings.SettingsActivity::class.java))
-            }
-        }
-        bottomSheet.show(parentFragmentManager, "HomeMenu")
-    }
-    
-    private fun showGroupDialog(groupApp: AppModel) {
-        val groupId = groupApp.groupId ?: return
-        val apps = viewModel.getAppsInGroup(groupId)
-        
-        // Full Screen Overlay Dialog (Minimalist)
+
+    private fun showCategoryDialog(category: CategoryGroup) {
         val dialog = android.app.Dialog(requireContext(), android.R.style.Theme_Translucent_NoTitleBar)
         dialog.setContentView(R.layout.dialog_folder_overlay)
         dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
-        
+
         val tvTitle = dialog.findViewById<TextView>(R.id.tv_folder_title)
         val rvApps = dialog.findViewById<RecyclerView>(R.id.rv_folder_apps)
         val btnClose = dialog.findViewById<View>(R.id.btn_close_folder)
-        
-        tvTitle.text = groupId
-        
-        // Force Grid Layout (Minimalist)
+
+        tvTitle.text = category.name
+
         rvApps.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 4)
-        val gridAdapter = AppAdapter(
+        val gridAdapter = com.diez.stoiclauncher.presentation.home.AppAdapter(
             onAppClick = { app ->
-                com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app)
+                AppLaunchHelper.launchApp(requireContext(), app)
                 dialog.dismiss()
             },
             onAppLongClick = { app ->
-                (requireActivity() as? AppActionListener)?.onAppLongClick(app, "GROUP") ?: false
+                (requireActivity() as? AppActionListener)?.onAppLongClick(app, "CATEGORY") ?: false
             },
             hideLabelsForSingleApps = false
         )
-        gridAdapter.submitList(apps)
+        gridAdapter.submitList(category.apps)
         rvApps.adapter = gridAdapter
-        
+
         btnClose.setOnClickListener { dialog.dismiss() }
-        
-        dialog.findViewById<View>(android.R.id.content).setOnClickListener { 
-             // dialog.dismiss() 
-        }
-        
         dialog.show()
+    }
+
+    private fun showBubbleOptions(category: CategoryGroup) {
+        val settingsRepo = (requireActivity().application as StoicApplication).container.settingsRepository
+        val options = listOf(
+            com.diez.stoiclauncher.presentation.common.MenuOption("Renombrar"),
+            com.diez.stoiclauncher.presentation.common.MenuOption("Ocultar categoría"),
+            com.diez.stoiclauncher.presentation.common.MenuOption("Editar apps")
+        )
+        com.diez.stoiclauncher.presentation.common.BottomSheetMenu(
+            category.name, options, viewModel.accentColor.value
+        ) { index ->
+            when (index) {
+                0 -> showRenameCategoryDialog(category, settingsRepo)
+                1 -> lifecycleScope.launch { settingsRepo.toggleHiddenCategory(category.originalName) }
+                2 -> showEditAppsDialog(category)
+            }
+        }.show(parentFragmentManager, "bubble_options")
+    }
+
+    private fun showRenameCategoryDialog(category: CategoryGroup, settingsRepo: com.diez.stoiclauncher.domain.repository.SettingsRepository) {
+        val dlg = com.google.android.material.bottomsheet.BottomSheetDialog(requireContext())
+        val view = layoutInflater.inflate(R.layout.layout_bottom_sheet_input, null)
+        dlg.setContentView(view)
+        val accentColor = viewModel.accentColor.value
+        val contentColor = ColorHelper.getTextColorForAccent(accentColor, viewModel.isWallpaperEnabled.value)
+        com.diez.stoiclauncher.presentation.util.UiHelper.setupBottomSheetColor(dlg, view, accentColor)
+        val tvTitle = view.findViewById<android.widget.TextView>(R.id.tv_title)
+        val etInput = view.findViewById<android.widget.EditText>(R.id.et_input)
+        val btnConfirm = view.findViewById<android.widget.TextView>(R.id.btn_confirm)
+        tvTitle.text = "Renombrar categoría"
+        tvTitle.setTextColor(contentColor)
+        etInput.setText(category.name)
+        etInput.hint = "Nuevo nombre"
+        etInput.setTextColor(android.graphics.Color.BLACK)
+        etInput.setHintTextColor(android.graphics.Color.GRAY)
+        etInput.selectAll()
+        btnConfirm.setTextColor(contentColor)
+        btnConfirm.setOnClickListener {
+            val newName = etInput.text.toString().trim()
+            if (newName.isNotEmpty()) {
+                lifecycleScope.launch {
+                    settingsRepo.setCustomCategoryName(category.originalName, newName)
+                }
+            }
+            dlg.dismiss()
+        }
+        dlg.show()
+        etInput.requestFocus()
+    }
+
+    private fun showEditAppsDialog(category: CategoryGroup) {
+        // Show all apps in this category with ability to move them to other categories
+        val dialog = android.app.Dialog(requireContext(), android.R.style.Theme_Translucent_NoTitleBar)
+        dialog.setContentView(R.layout.dialog_folder_overlay)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+
+        val tvTitle = dialog.findViewById<TextView>(R.id.tv_folder_title)
+        val rvApps = dialog.findViewById<RecyclerView>(R.id.rv_folder_apps)
+        val btnClose = dialog.findViewById<View>(R.id.btn_close_folder)
+
+        tvTitle.text = "Editar: ${category.name}"
+
+        rvApps.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(requireContext())
+        val editAdapter = CategoryEditAdapter(
+            apps = category.apps,
+            monoFilter = monoFilter,
+            onMoveApp = { app -> showMoveAppDialog(app, dialog) }
+        )
+        rvApps.adapter = editAdapter
+
+        btnClose.setOnClickListener { dialog.dismiss() }
+        dialog.show()
+    }
+
+    private fun showMoveAppDialog(app: AppModel, parentDialog: android.app.Dialog) {
+        val categories = listOf("Social", "Trabajo", "Entretenimiento", "Finanzas", "Sistema", "Otros")
+        val options = categories.map { com.diez.stoiclauncher.presentation.common.MenuOption(it) }
+        com.diez.stoiclauncher.presentation.common.BottomSheetMenu(
+            "Mover ${app.label} a:", options, viewModel.accentColor.value
+        ) { index ->
+            // Note: This is a visual-only move for the current session.
+            // Real app categorization requires changing the package category or creating a custom mapping.
+            // For now, we just show a toast.
+            android.widget.Toast.makeText(requireContext(), "Movido a ${categories[index]}", android.widget.Toast.LENGTH_SHORT).show()
+        }.show(parentFragmentManager, "move_app")
     }
 }
 
-interface AppActionListener {
-    fun onAppLongClick(app: AppModel, source: String = "DRAWER"): Boolean
+data class CategoryGroup(
+    val name: String,
+    val apps: List<AppModel>,
+    val originalName: String = name
+)
+
+class BubbleAdapter(
+    private val monoFilter: ColorMatrixColorFilter,
+    private val onBubbleClick: (CategoryGroup) -> Unit,
+    private val onBubbleLongClick: (CategoryGroup) -> Boolean
+) : RecyclerView.Adapter<BubbleAdapter.VH>() {
+
+    private var categories: List<CategoryGroup> = emptyList()
+    private var textColor = Color.WHITE
+    private var secondaryColor = 0xB3FFFFFF.toInt()
+
+    inner class VH(view: View) : RecyclerView.ViewHolder(view) {
+        val title: TextView = view.findViewById(R.id.tv_bubble_title)
+        val count: TextView = view.findViewById(R.id.tv_bubble_count)
+        val icon1: ImageView = view.findViewById(R.id.iv_icon_1)
+        val icon2: ImageView = view.findViewById(R.id.iv_icon_2)
+        val icon3: ImageView = view.findViewById(R.id.iv_icon_3)
+        val icon4: ImageView = view.findViewById(R.id.iv_icon_4)
+    }
+
+    fun submitCategories(list: List<CategoryGroup>) {
+        categories = list
+        notifyDataSetChanged()
+    }
+
+    fun updateColors(text: Int, secondary: Int) {
+        textColor = text
+        secondaryColor = secondary
+        notifyDataSetChanged()
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_bubble, parent, false)
+        return VH(view)
+    }
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val category = categories[position]
+        holder.title.text = category.name
+        holder.title.setTextColor(textColor)
+        holder.count.text = "${category.apps.size} apps"
+        holder.count.setTextColor(secondaryColor)
+
+        val icons = listOf(holder.icon1, holder.icon2, holder.icon3, holder.icon4)
+        icons.forEach { it.visibility = View.INVISIBLE }
+
+        category.apps.take(4).forEachIndexed { index, app ->
+            if (index < icons.size) {
+                val iv = icons[index]
+                if (app.icon != null) {
+                    iv.setImageDrawable(app.icon)
+                    iv.colorFilter = monoFilter
+                    iv.visibility = View.VISIBLE
+                }
+            }
+        }
+
+        holder.itemView.setOnClickListener { onBubbleClick(category) }
+        holder.itemView.setOnLongClickListener { onBubbleLongClick(category) }
+    }
+
+    override fun getItemCount() = categories.size
 }
 
-interface WidgetContainerProvider {
-    fun attachWidgetContainer(container: ViewGroup)
-    fun requestAddWidget()
+class CategoryEditAdapter(
+    private val apps: List<AppModel>,
+    private val monoFilter: ColorMatrixColorFilter,
+    private val onMoveApp: (AppModel) -> Unit
+) : RecyclerView.Adapter<CategoryEditAdapter.VH>() {
+
+    inner class VH(view: View) : RecyclerView.ViewHolder(view) {
+        val icon: ImageView = view.findViewById(R.id.iv_icon)
+        val label: TextView = view.findViewById(R.id.tv_label)
+    }
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.item_app_list, parent, false)
+        return VH(view)
+    }
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val app = apps[position]
+        holder.label.text = app.label
+        if (app.icon != null) {
+            holder.icon.setImageDrawable(app.icon)
+            holder.icon.colorFilter = monoFilter
+        }
+        holder.itemView.setOnClickListener { onMoveApp(app) }
+    }
+
+    override fun getItemCount() = apps.size
 }

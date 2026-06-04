@@ -43,4 +43,12 @@ interface SettingsRepository {
     // Group View Mode
     val isGroupGridMode: Flow<Boolean>
     suspend fun setGroupGridMode(isGrid: Boolean)
+    
+    // Category Management (hide/rename)
+    val hiddenCategories: Flow<Set<String>>
+    suspend fun toggleHiddenCategory(categoryName: String)
+    
+    val customCategoryNames: Flow<Map<String, String>>
+    suspend fun setCustomCategoryName(originalName: String, customName: String)
+    suspend fun removeCustomCategoryName(originalName: String)
 }

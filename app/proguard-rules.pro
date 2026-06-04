@@ -1,21 +1,33 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# Gson serialization
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class com.diez.stoiclauncher.domain.model.** { *; }
+-keep class com.google.gson.** { *; }
+-keep class com.google.gson.reflect.** { *; }
+-dontwarn com.google.gson.**
 
-# If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
-#-keepclassmembers class fqcn.of.javascript.interface.for.webview {
-#   public *;
-#}
+# kotlinx-serialization
+-keepattributes SerialVersionUID
+-keep,includedescriptorclasses class com.diez.stoiclauncher.**$$serializer { *; }
+-keepclassmembers class com.diez.stoiclauncher.** {
+    *** Companion;
+}
+-keepclasseswithmembers class com.diez.stoiclauncher.** {
+    kotlinx.serialization.KSerializer serializer(...);
+}
+-keep class kotlinx.serialization.** { *; }
+-dontwarn kotlinx.serialization.**
 
-# Uncomment this to preserve the line number information for
-# debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+# DataStore
+-keep class androidx.datastore.** { *; }
+-dontwarn androidx.datastore.**
 
-# If you keep the line number information, uncomment this to
-# hide the original source file name.
-#-renamesourcefileattribute SourceFile
+# AndroidX Palette
+-keep class androidx.palette.** { *; }
+
+# ViewBinding
+-keep class com.diez.stoiclauncher.databinding.** { *; }
+
+# Keep line numbers for crash reports
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile

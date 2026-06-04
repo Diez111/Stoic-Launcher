@@ -71,11 +71,14 @@ class DrawerFragment : Fragment() {
             }
         }
         
-        // Theme Colors - usar mapeo EXPLÍCITO de accentColor
+        // Theme Colors
         viewLifecycleOwner.lifecycleScope.launch {
-            viewModel.accentColor.collectLatest { color ->
-                 val contentColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getTextColorForAccent(color)
-                 val secondaryColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getSecondaryTextColorForAccent(color)
+            kotlinx.coroutines.flow.combine(
+                viewModel.accentColor, viewModel.isWallpaperEnabled
+            ) { color, wallpaper -> color to wallpaper }
+            .collectLatest { (color, isWallpaper) ->
+                 val contentColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getTextColorForAccent(color, isWallpaper)
+                 val secondaryColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getSecondaryTextColorForAccent(color, isWallpaper)
                  
                  
                  val searchBgColor = if (contentColor == android.graphics.Color.WHITE) {
@@ -101,7 +104,7 @@ class DrawerFragment : Fragment() {
                  btnSettings.setColorFilter(contentColor)
             }
     } // End launch
-    } // End onViewCreated
+     } // End onViewCreated
 
     override fun onResume() {
         super.onResume()

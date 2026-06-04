@@ -5,26 +5,32 @@ import android.content.Context
 import android.hardware.camera2.CameraManager
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.KeyEvent
 import android.view.accessibility.AccessibilityEvent
 import com.diez.stoiclauncher.StoicApplication
-import com.diez.stoiclauncher.domain.repository.SettingsRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class StoicAccessibilityService : AccessibilityService() {
 
-    private val scope = CoroutineScope(Dispatchers.IO)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private var isFlashlightOn = false
     private val handler = Handler(Looper.getMainLooper())
     
-    // For long press detection
     private var lastKeyDownTime = 0L
     private val longPressThreshold = 500L
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {}
+
+    override fun onDestroy() {
+        super.onDestroy()
+        scope.cancel()
+    }
 
     override fun onInterrupt() {}
 
@@ -76,7 +82,7 @@ class StoicAccessibilityService : AccessibilityService() {
             isFlashlightOn = !isFlashlightOn
             cameraManager.setTorchMode(cameraId, isFlashlightOn)
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error toggling flashlight", e)
         }
     }
 
@@ -89,5 +95,9 @@ class StoicAccessibilityService : AccessibilityService() {
         intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         intent?.putExtra("open_search", true)
         startActivity(intent)
+    }
+
+    companion object {
+        private const val TAG = "StoicAccessService"
     }
 }

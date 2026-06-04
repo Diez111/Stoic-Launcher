@@ -4,6 +4,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.RemoteViews
 import android.widget.RemoteViewsService
 import android.provider.CalendarContract
@@ -159,7 +160,7 @@ class CalendarRemoteViewsFactory(private val context: Context) : RemoteViewsServ
                 }
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.e(TAG, "Error fetching calendar events", e)
         }
     }
 
@@ -211,5 +212,9 @@ class CalendarRemoteViewsFactory(private val context: Context) : RemoteViewsServ
     // Extension for capitalize
     private fun String.capitalize(): String {
         return replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() }
+    }
+
+    companion object {
+        private const val TAG = "CalendarWidget"
     }
 }

@@ -3,194 +3,217 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fillViewport="true"
-    android:clipToPadding="false">
+    android:clipToPadding="false"
+    android:scrollbars="none">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
         android:paddingHorizontal="24dp"
-        android:paddingTop="56dp">
+        android:paddingTop="48dp">
 
-        <TextView
-            android:id="@+id/tv_settings_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/settings"
-            android:textColor="@android:color/white"
-            android:textSize="36sp"
-            android:fontFamily="sans-serif-thin"
-            android:layout_marginBottom="56dp" />
-
-        <!-- GENERAL Header -->
-        <TextView
-            android:id="@+id/tv_header_general"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/general_header"
-            android:textColor="#66FFFFFF"
-            android:textSize="12sp"
-            android:letterSpacing="0.1"
-            android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="24dp" />
-
-        <!-- Language Row -->
+        <!-- Back & Title -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:layout_marginBottom="32dp">
+            android:layout_marginBottom="48dp">
 
             <TextView
-                android:id="@+id/tv_label_language"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/language_title"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-light" />
-
-            <LinearLayout
+                android:id="@+id/btn_back"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:text="←"
+                android:textColor="@android:color/white"
+                android:textSize="28sp"
+                android:fontFamily="sans-serif-thin"
+                android:paddingEnd="12dp"
+                android:clickable="true"
+                android:focusable="true" />
+
+            <TextView
+                android:id="@+id/tv_settings_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/settings"
+                android:textColor="@android:color/white"
+                android:textSize="32sp"
+                android:fontFamily="sans-serif-thin" />
+        </LinearLayout>
+
+        <!-- GENERAL -->
+        <TextView
+            android:id="@+id/tv_header_general"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/general_header"
+            android:textColor="#40FFFFFF"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
+            android:fontFamily="sans-serif-medium"
+            android:layout_marginBottom="20dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:layout_marginBottom="40dp"
+            android:background="@drawable/bg_item_rounded"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="4dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="14dp">
+
+                <TextView
+                    android:id="@+id/tv_label_language"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/language_title"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif" />
 
                 <TextView
                     android:id="@+id/btn_lang_en"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="EN"
-                    android:textColor="#66FFFFFF"
-                    android:textSize="16sp"
-                    android:padding="8dp" />
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif"
+                    android:padding="6dp" />
 
                 <View
                     android:layout_width="1dp"
-                    android:layout_height="16dp"
+                    android:layout_height="14dp"
                     android:layout_gravity="center_vertical"
-                    android:background="#33FFFFFF"
-                    android:layout_marginHorizontal="8dp" />
+                    android:background="#20FFFFFF"
+                    android:layout_marginHorizontal="6dp" />
 
                 <TextView
                     android:id="@+id/btn_lang_es"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="ES"
-                    android:textColor="#66FFFFFF"
+                    android:textSize="14sp"
+                    android:fontFamily="sans-serif"
+                    android:padding="6dp" />
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#10FFFFFF" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="14dp">
+
+                <TextView
+                    android:id="@+id/tv_label_wallpaper"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/show_system_wallpaper"
+                    android:textColor="@android:color/white"
                     android:textSize="16sp"
-                    android:padding="8dp" />
+                    android:fontFamily="sans-serif" />
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_wallpaper"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:theme="@style/ThemeOverlay.AppCompat.Dark"
+                    android:scaleX="0.9"
+                    android:scaleY="0.9" />
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#10FFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/btn_select_wallpaper"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?selectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tv_label_select_wallpaper"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/select_wallpaper"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif" />
+            </LinearLayout>
+
+            <View android:layout_width="match_parent" android:layout_height="0.5dp" android:background="#10FFFFFF" />
+
+            <LinearLayout
+                android:id="@+id/btn_hidden_apps"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?selectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tv_label_hidden_apps"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/hidden_apps"
+                    android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif" />
             </LinearLayout>
         </LinearLayout>
 
-        <!-- Wallpaper Row -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="32dp">
-
-            <TextView
-                android:id="@+id/tv_label_wallpaper"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/show_system_wallpaper"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-light" />
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/switch_wallpaper"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:theme="@style/ThemeOverlay.AppCompat.Dark" />
-        </LinearLayout>
-
-        <!-- Custom Wallpaper Row -->
-        <LinearLayout
-            android:id="@+id/btn_select_wallpaper"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?selectableItemBackground"
-            android:layout_marginBottom="32dp">
-
-            <TextView
-                android:id="@+id/tv_label_select_wallpaper"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/select_wallpaper"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-light" />
-        </LinearLayout>
-
-        <!-- Hidden Apps Row -->
-        <LinearLayout
-            android:id="@+id/btn_hidden_apps"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?selectableItemBackground"
-            android:layout_marginBottom="48dp">
-
-            <TextView
-                android:id="@+id/tv_label_hidden_apps"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/hidden_apps"
-                android:textColor="@android:color/white"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-light" />
-                
-            <ImageView
-                 android:layout_width="24dp"
-                 android:layout_height="24dp"
-                 android:src="@android:drawable/ic_menu_edit"
-                 android:visibility="gone" /> 
-            <!-- Cleaner without icon or use chevron -->
-        </LinearLayout>
-
-        <!-- DIGITAL WELLBEING Header -->
+        <!-- DIGITAL WELLBEING -->
         <TextView
             android:id="@+id/tv_header_wellbeing"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/digital_wellbeing"
-            android:textColor="#66FFFFFF"
-            android:textSize="12sp"
-            android:letterSpacing="0.1"
+            android:textColor="#40FFFFFF"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
             android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="20dp" />
 
-        <!-- Usage Limit Manager Row -->
         <LinearLayout
-            android:id="@+id/btn_manage_usage_limits"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?selectableItemBackground"
-            android:layout_marginBottom="48dp">
+            android:orientation="vertical"
+            android:layout_marginBottom="40dp"
+            android:background="@drawable/bg_item_rounded"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="4dp">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:id="@+id/btn_manage_usage_limits"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:orientation="vertical"
+                android:paddingVertical="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?selectableItemBackground">
 
                 <TextView
                     android:id="@+id/tv_label_usage_limit"
@@ -198,100 +221,96 @@
                     android:layout_height="wrap_content"
                     android:text="@string/daily_limit"
                     android:textColor="@android:color/white"
-                    android:textSize="18sp"
-                    android:fontFamily="sans-serif-light" />
-                    
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif" />
+
                 <TextView
                     android:id="@+id/tv_usage_status_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Configura tiempos de uso"
-                    android:textColor="#66FFFFFF"
-                    android:textSize="14sp"
+                    android:text=""
+                    android:textSize="13sp"
                     android:fontFamily="sans-serif"
-                    android:layout_marginTop="4dp" />
+                    android:layout_marginTop="2dp" />
             </LinearLayout>
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:src="@android:drawable/ic_menu_crop"
-                android:tint="#66FFFFFF"
-                android:rotation="-90" /> 
-                <!-- Using generic Chevron-like icon or edit? ic_menu_crop is just a placeholder, better standard chevron right if available? 
-                     I'll stick to simple text or no icon. User prefers minimalist. 
-                     Just a > or nothing. 
-                     Let's use a standard arrow or just layout. -->
         </LinearLayout>
 
-
-        <!-- WIDGETS Header -->
+        <!-- WIDGETS -->
         <TextView
             android:id="@+id/tv_header_widgets"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/widgets_header"
-            android:textColor="#66FFFFFF"
-            android:textSize="12sp"
-            android:letterSpacing="0.1"
+            android:textColor="#40FFFFFF"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
             android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="20dp" />
 
-        <!-- Reset Widgets Row -->
         <LinearLayout
-            android:id="@+id/btn_reset_widgets"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:clickable="true"
-            android:focusable="true"
-            android:background="?selectableItemBackground"
-            android:layout_marginBottom="48dp">
+            android:orientation="vertical"
+            android:layout_marginBottom="40dp"
+            android:background="@drawable/bg_item_rounded"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="4dp">
 
-            <TextView
-                android:id="@+id/tv_label_reset_widgets"
-                android:layout_width="0dp"
+            <LinearLayout
+                android:id="@+id/btn_reset_widgets"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/delete_all_widgets"
-                android:textColor="#FF5252"
-                android:textSize="18sp"
-                android:fontFamily="sans-serif-light" />
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:paddingVertical="14dp"
+                android:clickable="true"
+                android:focusable="true"
+                android:background="?selectableItemBackground">
+
+                <TextView
+                    android:id="@+id/tv_label_reset_widgets"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/delete_all_widgets"
+                    android:textColor="#FF5252"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif" />
+            </LinearLayout>
         </LinearLayout>
 
-
-        <!-- STYLE Header -->
+        <!-- STYLE -->
         <TextView
             android:id="@+id/tv_header_style"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/style_header"
-            android:textColor="#66FFFFFF"
-            android:textSize="12sp"
-            android:letterSpacing="0.1"
+            android:textColor="#40FFFFFF"
+            android:textSize="11sp"
+            android:letterSpacing="0.12"
             android:fontFamily="sans-serif-medium"
-            android:layout_marginBottom="24dp" />
+            android:layout_marginBottom="20dp" />
 
         <TextView
             android:id="@+id/tv_label_accent_color"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/accent_color"
-            android:textColor="@android:color/white"
-            android:textSize="18sp"
-            android:fontFamily="sans-serif-light"
-            android:layout_marginBottom="16dp" />
+            android:textColor="#99FFFFFF"
+            android:textSize="14sp"
+            android:fontFamily="sans-serif"
+            android:layout_marginBottom="12dp" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/rv_themes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:nestedScrollingEnabled="false" />
+            android:nestedScrollingEnabled="false"
+            android:overScrollMode="never" />
 
         <Space
             android:layout_width="match_parent"
-            android:layout_height="80dp" />
+            android:layout_height="64dp" />
 
     </LinearLayout>
 </ScrollView>

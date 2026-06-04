@@ -1,15 +1,15 @@
 package com.diez.stoiclauncher.data.repository
 
 import android.content.Context
-import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.pm.ResolveInfo
 import com.diez.stoiclauncher.domain.model.AppModel
 import com.diez.stoiclauncher.domain.repository.AppRepository
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.launch
 
@@ -20,24 +20,25 @@ class AppRepositoryImpl(
 
     private val _installedApps = MutableStateFlow<List<AppModel>>(emptyList())
     private val packageManager: PackageManager = context.packageManager
-    private val searchIndex = com.diez.stoiclauncher.data.search.Trie()
     private val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
+    private val callbackScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val _forceRefresh = MutableStateFlow(0L)
 
     private val callback = object : android.content.pm.LauncherApps.Callback() {
         override fun onPackageAdded(packageName: String, user: android.os.UserHandle) {
-             kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch { refreshApps() }
+             callbackScope.launch { refreshApps() }
         }
         override fun onPackageRemoved(packageName: String, user: android.os.UserHandle) {
-             kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch { refreshApps() }
+             callbackScope.launch { refreshApps() }
         }
         override fun onPackageChanged(packageName: String, user: android.os.UserHandle) {
-             kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch { refreshApps() }
+             callbackScope.launch { refreshApps() }
         }
         override fun onPackagesAvailable(packageNames: Array<out String>?, user: android.os.UserHandle, replacing: Boolean) {
-             kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch { refreshApps() }
+             callbackScope.launch { refreshApps() }
         }
         override fun onPackagesUnavailable(packageNames: Array<out String>?, user: android.os.UserHandle, replacing: Boolean) {
-             kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch { refreshApps() }
+             callbackScope.launch { refreshApps() }
         }
     }
 
@@ -45,13 +46,19 @@ class AppRepositoryImpl(
         launcherApps.registerCallback(callback)
     }
 
+    fun destroy() {
+        launcherApps.unregisterCallback(callback)
+        callbackScope.cancel()
+    }
+
     // Combine installed apps with preferences
     override fun getAllApps(includeHidden: Boolean): Flow<List<AppModel>> = kotlinx.coroutines.flow.combine(
         _installedApps,
+        _forceRefresh,
         preferencesRepository.hiddenAppsFlow,
         preferencesRepository.appAliasesFlow,
         preferencesRepository.appGroupsFlow
-    ) { apps, hidden, aliases, groups ->
+    ) { apps, _, hidden, aliases, groups ->
         // Return ALL apps effectively if includeHidden is true, otherwise filter
         val visibleApps = if (includeHidden) apps else apps.filter { !hidden.contains(it.uniqueId) }
         
@@ -103,12 +110,7 @@ class AppRepositoryImpl(
             // 1. Contains
             if (label.contains(normalizedQuery)) return@filter true
             
-            // 2. Acronym? (Start letters of words) - TODO if needed
-            
-            // 3. Fuzzy / Typos (Levenshtein)
-            // Allow 1 error for every 4 chars?
-            val threshold = (label.length / 4).coerceAtLeast(1)
-            // Or simplified: if query is short, exact or contains. If longer, allow typo.
+            // 2. Fuzzy / Typos (Levenshtein + Subsequence)
             if (normalizedQuery.length > 2) {
                  val distance = levenshtein(label, normalizedQuery)
                  // If distance is small enough considering query length
@@ -184,11 +186,11 @@ class AppRepositoryImpl(
 
     override suspend fun renameGroup(oldGroupId: String, newGroupId: String) {
         preferencesRepository.renameGroup(oldGroupId, newGroupId)
-        _installedApps.value = _installedApps.value
+        _forceRefresh.value = System.currentTimeMillis()
     }
 
     override suspend fun deleteGroup(groupId: String) {
         preferencesRepository.deleteGroup(groupId)
-        _installedApps.value = _installedApps.value
+        _forceRefresh.value = System.currentTimeMillis()
     }
 }

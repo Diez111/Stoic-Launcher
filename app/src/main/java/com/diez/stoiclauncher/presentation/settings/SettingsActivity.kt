@@ -20,8 +20,11 @@ class SettingsActivity : AppCompatActivity() {
         @Suppress("DEPRECATION")
         window.statusBarColor = android.graphics.Color.BLACK
         
+        val btnBack = findViewById<android.view.View>(R.id.btn_back)
         val switchWallpaper = findViewById<SwitchCompat>(R.id.switch_wallpaper)
         val rvThemes = findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rv_themes)
+        
+        btnBack.setOnClickListener { finish() }
         
         val appContainer = (application as com.diez.stoiclauncher.StoicApplication).container
         val settingsRepository = appContainer.settingsRepository
@@ -110,6 +113,7 @@ class SettingsActivity : AppCompatActivity() {
                  val inactiveColor = if (isLight) 0x66000000.toInt() else 0x66FFFFFF.toInt()
 
                  findViewById<android.widget.TextView>(R.id.tv_settings_title).setTextColor(contrastColor)
+                 (btnBack as? android.widget.TextView)?.setTextColor(contrastColor)
                  findViewById<android.widget.TextView>(R.id.tv_header_general).setTextColor(secondaryColor)
                  findViewById<android.widget.TextView>(R.id.tv_header_widgets).setTextColor(secondaryColor)
                  findViewById<android.widget.TextView>(R.id.tv_header_wellbeing).setTextColor(secondaryColor)
@@ -119,8 +123,9 @@ class SettingsActivity : AppCompatActivity() {
                  findViewById<android.widget.TextView>(R.id.tv_label_wallpaper).setTextColor(contrastColor)
                  findViewById<android.widget.TextView>(R.id.tv_label_select_wallpaper).setTextColor(contrastColor)
                  findViewById<android.widget.TextView>(R.id.tv_label_hidden_apps).setTextColor(contrastColor)
+                 findViewById<android.widget.TextView>(R.id.tv_label_usage_limit).setTextColor(contrastColor)
 
-                 findViewById<android.widget.TextView>(R.id.tv_label_accent_color).setTextColor(contrastColor)
+                 findViewById<android.widget.TextView>(R.id.tv_label_accent_color).setTextColor(secondaryColor)
                  
                  // Update Adapter
                  (rvThemes.adapter as? ThemeAdapter)?.textColor = contrastColor
@@ -179,7 +184,9 @@ class SettingsActivity : AppCompatActivity() {
                 try {
                     val flags = android.content.Intent.FLAG_GRANT_READ_URI_PERMISSION
                     contentResolver.takePersistableUriPermission(it, flags)
-                } catch (e: Exception) {}
+                } catch (e: Exception) {
+                    android.util.Log.w("SettingsActivity", "Could not persist URI permission", e)
+                }
                 
                 kotlinx.coroutines.MainScope().launch {
                     settingsRepository.setWallpaperUri(it.toString())
@@ -331,9 +338,11 @@ class SettingsActivity : AppCompatActivity() {
                                      )
                                  )
                              }
-                         } catch (e: Exception) {}
-                     }
-                 }
+                          } catch (e: Exception) {
+                            android.util.Log.w("SettingsActivity", "Could not resolve hidden app: $packageName", e)
+                          }
+                      }
+                  }
                  
                  adapter.submitList(resolvedApps)
                  if (resolvedApps.isEmpty()) {
@@ -390,8 +399,10 @@ class SettingsActivity : AppCompatActivity() {
                                  break
                              }
                          }
-                     } catch (e: Exception) {}
-                 }
+                      } catch (e: Exception) {
+                        android.util.Log.w("SettingsActivity", "Could not resolve usage limit app: $pkg", e)
+                      }
+                  }
                  
                  rvApps.adapter = RestrictedAppsAdapter(resolvedApps) { app ->
                      // Edit / Remove Limit Dialog

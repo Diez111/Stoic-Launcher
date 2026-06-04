@@ -34,23 +34,12 @@ class FavoritesFragment : Fragment() {
 
         // Launch Clock
         tcClock.setOnClickListener {
-             try {
-                val intent = android.content.Intent(android.provider.AlarmClock.ACTION_SHOW_ALARMS)
-                startActivity(intent)
-             } catch (e: Exception) {}
+             com.diez.stoiclauncher.presentation.util.LaunchHelper.openClock(requireContext())
         }
         
         // Launch Calendar
         tcDate.setOnClickListener {
-             try {
-                val intent = android.content.Intent(android.content.Intent.ACTION_MAIN)
-                intent.addCategory(android.content.Intent.CATEGORY_APP_CALENDAR)
-                startActivity(intent)
-             } catch (e: Exception) {
-                 val calIntent = android.content.Intent(android.content.Intent.ACTION_VIEW)
-                 calIntent.data = android.net.Uri.parse("content://com.android.calendar/time/")
-                 try { startActivity(calIntent) } catch (e2: Exception) {}
-             }
+             com.diez.stoiclauncher.presentation.util.LaunchHelper.openCalendar(requireContext())
         }
         
         

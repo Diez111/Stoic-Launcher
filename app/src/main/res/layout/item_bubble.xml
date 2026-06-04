@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="12dp"
+    android:background="@drawable/bg_bubble"
+    android:layout_margin="6dp">
+
+    <TextView
+        android:id="@+id/tv_bubble_title"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:fontFamily="sans-serif-medium"
+        android:letterSpacing="0.04"
+        android:maxLines="1"
+        android:ellipsize="end"
+        android:gravity="center"
+        android:layout_marginBottom="8dp" />
+
+    <GridLayout
+        android:id="@+id/gl_icons"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:rowCount="2"
+        android:columnCount="2"
+        android:useDefaultMargins="true"
+        android:alignmentMode="alignMargins">
+
+        <ImageView
+            android:id="@+id/iv_icon_1"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:scaleType="centerInside"
+            android:visibility="invisible" />
+
+        <ImageView
+            android:id="@+id/iv_icon_2"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:scaleType="centerInside"
+            android:visibility="invisible" />
+
+        <ImageView
+            android:id="@+id/iv_icon_3"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:scaleType="centerInside"
+            android:visibility="invisible" />
+
+        <ImageView
+            android:id="@+id/iv_icon_4"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:scaleType="centerInside"
+            android:visibility="invisible" />
+
+    </GridLayout>
+
+    <TextView
+        android:id="@+id/tv_bubble_count"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textColor="#99FFFFFF"
+        android:textSize="10sp"
+        android:fontFamily="sans-serif"
+        android:gravity="center"
+        android:layout_marginTop="6dp" />
+
+</LinearLayout>

@@ -3,10 +3,10 @@ package com.diez.stoiclauncher.presentation.settings
 import android.content.Intent
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Log
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.diez.stoiclauncher.R
-import com.diez.stoiclauncher.domain.repository.SettingsRepository
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
@@ -72,6 +72,7 @@ class GesturesActivity : AppCompatActivity() {
                             window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK))
                         }
                     } catch (e: Exception) {
+                        Log.w(TAG, "Error loading wallpaper bitmap", e)
                         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK))
                     }
                 } else if (isWallpaper) {
@@ -129,6 +130,10 @@ class GesturesActivity : AppCompatActivity() {
             return settingValue?.contains(service) == true
         }
         return false
+    }
+
+    companion object {
+        private const val TAG = "GesturesActivity"
     }
 
     private fun getActionLabel(action: String?): String {

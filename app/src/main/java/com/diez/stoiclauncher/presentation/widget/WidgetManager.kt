@@ -6,6 +6,7 @@ import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProviderInfo
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.view.ViewGroup
 import androidx.appcompat.app.AppCompatActivity
 import androidx.viewpager2.widget.ViewPager2
@@ -67,7 +68,7 @@ class WidgetManager(
                 settingsRepository.deleteWidgetConfig(appWidgetId)
                 android.util.Log.d("WidgetManager", "Widget config deleted from persistence: $appWidgetId")
             } catch (e: Exception) {
-                android.util.Log.e("WidgetManager", "Error deleting widget config", e)
+                Log.e(TAG, "Error deleting widget config", e)
             }
         }
     }
@@ -213,7 +214,7 @@ class WidgetManager(
                 try {
                     adapter.filter(newText ?: "")
                 } catch (e: Exception) {
-                    android.util.Log.e("WidgetManager", "Error filtering", e)
+                    Log.e(TAG, "Error filtering widgets", e)
                 }
                 return true
             }
@@ -255,7 +256,7 @@ class WidgetManager(
                 createWidgetWrapper(container, widgetId, info, hostView, null)
                 
             } catch (e: Exception) {
-                android.util.Log.e("WidgetManager", "Error adding widget", e)
+                Log.e(TAG, "Error adding widget", e)
                 android.widget.Toast.makeText(activity, "Error: ${e.message}", android.widget.Toast.LENGTH_LONG).show()
             }
         } ?: run {
@@ -296,7 +297,7 @@ class WidgetManager(
                 createWidgetWrapper(container, config.widgetId, info, hostView, config)
                 
             } catch (e: Exception) {
-                android.util.Log.e("WidgetManager", "Error restoring widget ${config.widgetId}", e)
+                Log.e(TAG, "Error restoring widget ${config.widgetId}", e)
             }
         }
     }
@@ -848,12 +849,13 @@ class WidgetManager(
                 )
                 settingsRepository.saveWidgetConfig(config)
             } catch (e: Exception) {
-                android.util.Log.e("WidgetManager", "Error saving config", e)
+                Log.e(TAG, "Error saving widget config", e)
             }
         }
     }
 
     companion object {
+        private const val TAG = "WidgetManager"
         const val REQUEST_PICK_APPWIDGET = 9
         const val REQUEST_CREATE_APPWIDGET = 10
         const val REQUEST_BIND_APPWIDGET = 11
