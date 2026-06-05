@@ -28,6 +28,7 @@ class AppPreferencesRepository(private val context: Context) {
         val APP_ALIASES_KEY = stringPreferencesKey("app_aliases")
         val APP_GROUPS_KEY = stringPreferencesKey("app_groups")
         val APP_SHORTCUTS_KEY = stringPreferencesKey("app_shortcuts")
+        val ICON_PACK_KEY = stringPreferencesKey("icon_pack")
     }
 
     val hiddenAppsFlow: Flow<Set<String>> = context.dataStore.data.map { preferences ->
@@ -46,6 +47,10 @@ class AppPreferencesRepository(private val context: Context) {
         val json = preferences[APP_SHORTCUTS_KEY] ?: "{}"
         val type = object : TypeToken<Map<String, String>>() {}.type
         gson.fromJson(json, type) ?: emptyMap()
+    }
+
+    val iconPackPackageFlow: Flow<String?> = context.dataStore.data.map { preferences ->
+        preferences[ICON_PACK_KEY] ?: "stoic_builtin"
     }
     
     suspend fun setAppHidden(packageName: String, isHidden: Boolean) {
@@ -147,6 +152,16 @@ class AppPreferencesRepository(private val context: Context) {
             
             val newJson = gson.toJson(currentMap)
             preferences[APP_SHORTCUTS_KEY] = newJson
+        }
+    }
+
+    suspend fun setIconPackPackage(packageName: String?) {
+        context.dataStore.edit { preferences ->
+            if (packageName == null) {
+                preferences.remove(ICON_PACK_KEY)
+            } else {
+                preferences[ICON_PACK_KEY] = packageName
+            }
         }
     }
 }

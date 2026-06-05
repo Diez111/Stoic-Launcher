@@ -15,7 +15,8 @@ import kotlinx.coroutines.launch
 
 class AppRepositoryImpl(
     private val context: Context,
-    private val preferencesRepository: AppPreferencesRepository
+    private val preferencesRepository: AppPreferencesRepository,
+    private val iconPackManager: com.diez.stoiclauncher.domain.util.IconPackManager
 ) : AppRepository {
 
     private val _installedApps = MutableStateFlow<List<AppModel>>(emptyList())
@@ -44,6 +45,12 @@ class AppRepositoryImpl(
 
     init {
         launcherApps.registerCallback(callback)
+        callbackScope.launch {
+            preferencesRepository.iconPackPackageFlow.collect { pack ->
+                iconPackManager.setIconPack(pack)
+                refreshApps()
+            }
+        }
     }
 
     fun destroy() {
@@ -86,11 +93,33 @@ class AppRepositoryImpl(
             for (userHandle in profiles) {
                 val activities = launcherApps.getActivityList(null, userHandle)
                 for (activity in activities) {
+                    var icon: android.graphics.drawable.Drawable? = null
+                    
+                    if (iconPackManager.isStoicMinimal) {
+                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                            val originalIcon = activity.getIcon(0)
+                            if (originalIcon is android.graphics.drawable.AdaptiveIconDrawable && originalIcon.monochrome != null) {
+                                icon = originalIcon.monochrome?.constantState?.newDrawable()?.mutate()?.apply {
+                                    setTint(android.graphics.Color.WHITE)
+                                }
+                            }
+                        }
+                        if (icon == null) {
+                            icon = activity.getIcon(0)
+                        }
+                    } else {
+                        icon = iconPackManager.getIcon(activity.componentName)
+                    }
+                    
+                    if (icon == null) {
+                        icon = activity.getIcon(0)
+                    }
+
                     appModels.add(
                         AppModel(
                             label = activity.label.toString(),
                             packageName = activity.applicationInfo.packageName,
-                            icon = activity.getIcon(0), // 0 density = default
+                            icon = icon,
                             user = userHandle,
                             category = com.diez.stoiclauncher.domain.util.AppCategorizer.getCategory(activity.applicationInfo)
                         )

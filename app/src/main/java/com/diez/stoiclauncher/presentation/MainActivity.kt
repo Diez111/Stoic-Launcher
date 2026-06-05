@@ -176,49 +176,39 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
     }
 
     private fun setupDock() {
-        val btnPhone = findViewById<View>(R.id.btn_phone)
-        val btnSettings = findViewById<View>(R.id.btn_settings)
+        val btnWhatsapp = findViewById<View>(R.id.btn_whatsapp)
+        val btnMaps = findViewById<View>(R.id.btn_maps)
+        val btnSpotify = findViewById<View>(R.id.btn_spotify)
+        val btnMessages = findViewById<View>(R.id.btn_messages)
 
         lifecycleScope.launch {
             kotlinx.coroutines.flow.combine(
-                viewModel.shortcutsState, viewModel.uiState, viewModel.accentColor, viewModel.isWallpaperEnabled
-            ) { shortcuts, apps, color, isWallpaper -> listOf(shortcuts, apps, color, isWallpaper) }
-                .collectLatest { (shortcuts, apps, color, isWallpaper) ->
+                viewModel.accentColor, viewModel.isWallpaperEnabled
+            ) { color, isWallpaper -> color to isWallpaper }
+                .collectLatest { (color, isWallpaper) ->
                     val contentColor = ColorHelper.getTextColorForAccent(color as Int, isWallpaper as Boolean)
-                    (btnPhone as? android.widget.TextView)?.setTextColor(contentColor)
-                    (btnSettings as? android.widget.TextView)?.setTextColor(contentColor)
-
-                    val leftPackage = (shortcuts as Map<String, String>)["bottom_left"]
-                    val leftApp = (leftPackage?.let { (apps as List<AppModel>).find { a -> a.packageName == it } })
-                    if (leftApp != null) {
-                        (btnPhone as? android.widget.TextView)?.text = leftApp.label
-                        btnPhone.setOnClickListener {
-                            com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(this@MainActivity, leftApp)
-                        }
-                    } else {
-                        (btnPhone as? android.widget.TextView)?.text = getString(R.string.phone)
-                        btnPhone.setOnClickListener { LaunchHelper.openDialer(this@MainActivity) }
-                    }
-
-                    val rightPackage = (shortcuts as Map<String, String>)["bottom_right"]
-                    val rightApp = (rightPackage?.let { (apps as List<AppModel>).find { a -> a.packageName == it } })
-                    if (rightApp != null) {
-                        (btnSettings as? android.widget.TextView)?.text = rightApp.label
-                        btnSettings.setOnClickListener {
-                            com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(this@MainActivity, rightApp)
-                        }
-                    } else {
-                        (btnSettings as? android.widget.TextView)?.text = getString(R.string.settings)
-                        btnSettings.setOnClickListener {
-                            startActivity(Intent(this@MainActivity,
-                                com.diez.stoiclauncher.presentation.settings.SettingsActivity::class.java))
-                        }
-                    }
+                    val tint = android.content.res.ColorStateList.valueOf(contentColor)
+                    
+                    (btnWhatsapp as? android.widget.ImageView)?.imageTintList = tint
+                    (btnMaps as? android.widget.ImageView)?.imageTintList = tint
+                    (btnSpotify as? android.widget.ImageView)?.imageTintList = tint
+                    (btnMessages as? android.widget.ImageView)?.imageTintList = tint
                 }
         }
 
-        btnPhone.setOnLongClickListener { showAppSelectionDialog("bottom_left"); true }
-        btnSettings.setOnLongClickListener { showAppSelectionDialog("bottom_right"); true }
+        val launchApp = { pkg: String ->
+            val intent = packageManager.getLaunchIntentForPackage(pkg)
+            if (intent != null) {
+                startActivity(intent)
+            } else {
+                android.widget.Toast.makeText(this, "App no instalada", android.widget.Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        btnWhatsapp.setOnClickListener { launchApp("com.whatsapp") }
+        btnMaps.setOnClickListener { launchApp("com.google.android.apps.maps") }
+        btnSpotify.setOnClickListener { launchApp("com.spotify.music") }
+        btnMessages.setOnClickListener { launchApp("com.google.android.apps.messaging") }
     }
 
     private fun setupPager() {

@@ -107,13 +107,13 @@ class WidgetManager(
             // Solo actualizar colores del wrapper si el modo no cambió
             android.util.Log.d("WidgetManager", "Mode unchanged. Only updating wrapper colors.")
             val density = activity.resources.displayMetrics.density
-            val wrapperBgColor = if (isLightMode) 0x1A000000 else 0x1AFFFFFF
+            val wrapperBgColor = if (isLightMode) 0x0A000000 else 0x0AFFFFFF
             
             for (i in 0 until container.childCount) {
                  val wrapper = container.getChildAt(i) as? android.widget.FrameLayout ?: continue
                  wrapper.background = android.graphics.drawable.GradientDrawable().apply {
                      setColor(wrapperBgColor)
-                     cornerRadius = 16 * density
+                     cornerRadius = 24 * density
                  }
             }
         }
@@ -307,8 +307,8 @@ class WidgetManager(
         val density = displayMetrics.density
         
         // Dimensions
-        val defaultHeightPx = (300 * density).toInt()
-        val minHeightPx = (150 * density).toInt()
+        val defaultHeightPx = (120 * density).toInt()
+        val minHeightPx = (120 * density).toInt()
         
         val finalHeight = config?.height ?: run {
              val widgetMinHeightDp = info.minHeight / density.toInt()
@@ -471,9 +471,9 @@ class WidgetManager(
                              var newLeft = (initialXOnDown + rawDiffX).toInt()
                              var newTop = (initialYOnDown + rawDiffY).toInt()
                              
-                             // Boundary Check (Clamp)
+                             // Boundary Check (Clamp top only)
                              newLeft = newLeft.coerceIn(0, pWidth - width)
-                             newTop = newTop.coerceIn(0, pHeight - height)
+                             newTop = newTop.coerceAtLeast(0)
                              
                              // Update LayoutParams
                              val params = layoutParams as android.widget.FrameLayout.LayoutParams
@@ -565,7 +565,7 @@ class WidgetManager(
                 exitEditModeCallback = { exitEditMode() }
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(0x30FFFFFF)
-                    cornerRadius = 16 * density
+                    cornerRadius = 24 * density
                     setStroke((2 * density).toInt(), 0xFF4CAF50.toInt())
                 }
                 disableViewPagerSwipe()
@@ -579,7 +579,7 @@ class WidgetManager(
                 exitEditModeCallback = { exitEditMode() }
                 background = android.graphics.drawable.GradientDrawable().apply {
                     setColor(0x30FFFFFF)
-                    cornerRadius = 16 * density
+                    cornerRadius = 24 * density
                     setStroke((2 * density).toInt(), 0xFF2196F3.toInt())
                 }
                 disableViewPagerSwipe()
@@ -592,8 +592,8 @@ class WidgetManager(
                 currentMode = MODE_NONE
                 exitEditModeCallback = null
                 background = android.graphics.drawable.GradientDrawable().apply {
-                    setColor(0x10FFFFFF)
-                    cornerRadius = 16 * density
+                    setColor(if (isLightMode) 0x0A000000 else 0x0AFFFFFF)
+                    cornerRadius = 24 * density
                 }
                 enableViewPagerSwipe()
                 blockingOverlay.visibility = android.view.View.GONE
@@ -607,11 +607,11 @@ class WidgetManager(
             }
         }
         
-        val wrapperBgColor = if (isLightMode) 0x1A000000 else 0x1AFFFFFF
+        val wrapperBgColor = if (isLightMode) 0x0A000000 else 0x0AFFFFFF
         
         wrapper.background = android.graphics.drawable.GradientDrawable().apply {
             setColor(wrapperBgColor)
-            cornerRadius = 16 * density
+            cornerRadius = 24 * density
         }
         wrapper.elevation = 2 * density
         wrapper.clipToOutline = true
@@ -689,9 +689,6 @@ class WidgetManager(
                                      
                                      val params = wrapper.layoutParams as android.widget.FrameLayout.LayoutParams
                                      params.topMargin = newTopMargin
-                                } else {
-                                     val currentTop = (wrapper.layoutParams as android.widget.FrameLayout.LayoutParams).topMargin
-                                     newHeight = newHeight.coerceAtMost(pHeight - currentTop)
                                 }
 
                                 wrapper.layoutParams.width = newWidth
@@ -732,7 +729,7 @@ class WidgetManager(
             container.addView(wrapper, params)
         } else {
              // New Widget Auto-Placement
-             val spacing = (16 * density).toInt() 
+             val spacing = (8 * density).toInt() 
              val slot = findPlacementSlot(container, finalHeight, minHeightPx, spacing)
              
              if (slot != null) {

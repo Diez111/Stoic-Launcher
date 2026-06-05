@@ -124,6 +124,7 @@ class SettingsActivity : AppCompatActivity() {
                  findViewById<android.widget.TextView>(R.id.tv_label_select_wallpaper).setTextColor(contrastColor)
                  findViewById<android.widget.TextView>(R.id.tv_label_hidden_apps).setTextColor(contrastColor)
                  findViewById<android.widget.TextView>(R.id.tv_label_usage_limit).setTextColor(contrastColor)
+                 findViewById<android.widget.TextView>(R.id.tv_label_icon_pack).setTextColor(contrastColor)
 
                  findViewById<android.widget.TextView>(R.id.tv_label_accent_color).setTextColor(secondaryColor)
                  
@@ -258,6 +259,60 @@ class SettingsActivity : AppCompatActivity() {
              } else {
                  showUsageLimitsManager()
              }
+        }
+        
+        // Icon Pack Logic
+        val btnIconPack = findViewById<android.view.View>(R.id.btn_icon_pack)
+        val tvIconPackSubtitle = findViewById<android.widget.TextView>(R.id.tv_icon_pack_subtitle)
+        
+        kotlinx.coroutines.MainScope().launch {
+            val appPreferences = com.diez.stoiclauncher.data.repository.AppPreferencesRepository(this@SettingsActivity)
+            appPreferences.iconPackPackageFlow.collect { pack ->
+                if (pack == null) {
+                    tvIconPackSubtitle.text = "Predeterminado"
+                } else if (pack == "stoic_builtin") {
+                    tvIconPackSubtitle.text = "Stoic Pack"
+                } else if (pack == "stoic_minimal") {
+                    tvIconPackSubtitle.text = "Stoic Minimal"
+                } else {
+                    val label = try {
+                        val info = packageManager.getApplicationInfo(pack, 0)
+                        packageManager.getApplicationLabel(info)
+                    } catch (e: Exception) {
+                        "Desconocido"
+                    }
+                    tvIconPackSubtitle.text = label
+                }
+            }
+        }
+        
+        btnIconPack.setOnClickListener {
+            val intent = android.content.Intent("com.novalauncher.THEME")
+            val resolveInfos = packageManager.queryIntentActivities(intent, 0)
+            val options = mutableListOf<Pair<String?, String>>()
+            options.add("stoic_builtin" to "Stoic Pack")
+            options.add("stoic_minimal" to "Stoic Minimal")
+            options.add(null to "Predeterminado")
+            resolveInfos.forEach {
+                val pkg = it.activityInfo.packageName
+                val label = it.loadLabel(packageManager).toString()
+                if (options.none { opt -> opt.first == pkg }) {
+                    options.add(pkg to label)
+                }
+            }
+            
+            val labels = options.map { it.second }.toTypedArray()
+            androidx.appcompat.app.AlertDialog.Builder(this)
+                .setTitle("Seleccionar Pack de Iconos")
+                .setItems(labels) { _, which ->
+                    val selectedPack = options[which].first
+                    kotlinx.coroutines.MainScope().launch {
+                        val appPreferences = com.diez.stoiclauncher.data.repository.AppPreferencesRepository(this@SettingsActivity)
+                        appPreferences.setIconPackPackage(selectedPack)
+                    }
+                }
+                .setNegativeButton("Cancelar", null)
+                .show()
         }
     }
     

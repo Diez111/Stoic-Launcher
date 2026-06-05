@@ -33,6 +33,30 @@ object AppCategorizer {
             p.contains("messenger") || p.contains("badoo") || p.contains("plato") ||
             p.contains("crunchyroll") -> "Social"
 
+            // FINANZAS (Banking, Investment, Shopping, Payments, Transport)
+            p.contains("bank") || p.contains("wallet") || p.contains("finance") ||
+            p.contains("money") || p.contains("pay") || p.contains("banc") ||
+            p.contains("uala") || p.contains("cocos") || p.contains("nexo") ||
+            p.contains("iol.") || p.contains("naranja") || p.contains("paretopago") ||
+            p.contains("rebanking") || p.contains("mercado") || p.contains("buepp") ||
+            p.contains("sube") || p.contains("ypf") || p.contains("tradingview") ||
+            p.contains("binance") || p.contains("bingbon") || p.contains("payoneer") ||
+            p.contains("galeno") || p.contains("tarjeta") || p.contains("shop") ||
+            p.contains("amazon") || p.contains("aliexpress") || p.contains("supermercado") ||
+            p.contains("dia.") || p.contains("map") || p.contains("waze") ||
+            p.contains("uber") || p.contains("pedidosya") || p.contains("rappi") ||
+            p.contains("temu") || p.contains("carrefour") -> "Finanzas"
+
+            // ENTRETENIMIENTO (Audio, Video, Photos, Games)
+            p.contains("spotify") || p.contains("music") || p.contains("shazam") ||
+            p.contains("youtube") || p.contains("newpipe") || p.contains("sound") ||
+            p.contains("volume") || p.contains("boost") || p.contains("camera") ||
+            p.contains("gallery") || p.contains("photo") || p.contains("scan") ||
+            p.contains("media") || p.contains("fashion") || p.contains("disney") ||
+            p.contains("netflix") || p.contains("prime") || p.contains("hbo") ||
+            p.contains("twitch") || p.contains("game") || p.contains("chess") ||
+            p.contains("odyssey") || p.contains("civilizations") || p.contains("play.games") -> "Entretenimiento"
+
             // TRABAJO (Productivity, Education, AI, Browsers)
             p.contains("calendar") || p.contains("keep") || p.contains("tasks") ||
             p.contains("doc") || p.contains("sheet") || p.contains("slide") ||
@@ -49,30 +73,6 @@ object AppCategorizer {
             p.contains("safetycore") || p.contains("microsoft") || p.contains("chrome") ||
             p.contains("firefox") || p.contains("browser") || p.contains("brave") ||
             p.contains("opera") || p.contains("news") -> "Trabajo"
-
-            // ENTRETENIMIENTO (Audio, Video, Photos, Games)
-            p.contains("spotify") || p.contains("music") || p.contains("shazam") ||
-            p.contains("youtube") || p.contains("newpipe") || p.contains("sound") ||
-            p.contains("volume") || p.contains("boost") || p.contains("camera") ||
-            p.contains("gallery") || p.contains("photo") || p.contains("scan") ||
-            p.contains("media") || p.contains("fashion") || p.contains("disney") ||
-            p.contains("netflix") || p.contains("prime") || p.contains("hbo") ||
-            p.contains("twitch") || p.contains("game") || p.contains("chess") ||
-            p.contains("odyssey") || p.contains("civilizations") || p.contains("play.games") ||
-            p.contains("bingbon") -> "Entretenimiento"
-
-            // FINANZAS (Banking, Shopping, Maps, Delivery, Transport)
-            p.contains("bank") || p.contains("wallet") || p.contains("finance") ||
-            p.contains("money") || p.contains("pay") || p.contains("banc") ||
-            p.contains("uala") || p.contains("cocos") || p.contains("nexo") ||
-            p.contains("iol.") || p.contains("naranja") || p.contains("paretopago") ||
-            p.contains("rebanking") || p.contains("mercado") || p.contains("buepp") ||
-            p.contains("sube") || p.contains("ypf") || p.contains("tradingview") ||
-            p.contains("galeno") || p.contains("tarjeta") || p.contains("shop") ||
-            p.contains("amazon") || p.contains("aliexpress") || p.contains("supermercado") ||
-            p.contains("dia.") || p.contains("map") || p.contains("waze") ||
-            p.contains("uber") || p.contains("pedidosya") || p.contains("rappi") ||
-            p.contains("smn") || p.contains("weather") || p.contains("clima") -> "Finanzas"
 
             // SISTEMA (Settings, Utilities, Health, System)
             p.contains("settings") || p.contains("systemui") || p.contains("launcher") ||
@@ -96,6 +96,7 @@ object AppCategorizer {
             p.contains("sync") || p.contains("nfc") || p.contains("print") ||
             p.contains("vpn") || p.contains("developer") || p.contains("accessibility") ||
             p.contains("recovery") || p.contains("framework") || p.contains("shell") ||
+            p.contains("smn") || p.contains("weather") || p.contains("clima") ||
             p.contains("android") || p.contains("google") || p.contains("com.miui") ||
             p.contains("com.xiaomi") || p.contains("com.android") || p.contains("com.google") -> "Sistema"
 

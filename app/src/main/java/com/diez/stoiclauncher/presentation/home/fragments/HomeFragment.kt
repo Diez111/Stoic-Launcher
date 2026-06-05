@@ -44,7 +44,6 @@ class HomeFragment : Fragment() {
 
         val tcClock = view.findViewById<View>(R.id.tc_clock)
         val tcDate = view.findViewById<View>(R.id.tc_date)
-        val widgetContainer = view.findViewById<ViewGroup>(R.id.widget_container)
 
         tcClock.setOnClickListener { LaunchHelper.openClock(requireContext()) }
         tcDate.setOnClickListener { LaunchHelper.openCalendar(requireContext()) }
@@ -97,28 +96,19 @@ class HomeFragment : Fragment() {
                 }
         }
 
-        viewLifecycleOwner.lifecycleScope.launch {
-            settingsRepo.widgetConfigs.collectLatest { configs ->
-                widgetContainer?.let { container ->
-                    (requireActivity() as? com.diez.stoiclauncher.presentation.MainActivity)
-                        ?.widgetController?.restoreWidgets(configs)
-                }
-            }
+        rvBubbles.viewTreeObserver.addOnGlobalLayoutListener {
+            bubbleAdapter.updateHeight(rvBubbles)
         }
-
-        (requireActivity() as? WidgetContainerProvider)?.attachWidgetContainer(widgetContainer!!)
 
         view.setOnLongClickListener {
             val options = listOf(
-                com.diez.stoiclauncher.presentation.common.MenuOption(getString(R.string.add_widget)),
                 com.diez.stoiclauncher.presentation.common.MenuOption(getString(R.string.settings))
             )
             com.diez.stoiclauncher.presentation.common.BottomSheetMenu(
                 "", options, viewModel.accentColor.value
             ) { index ->
                 when (index) {
-                    0 -> (requireActivity() as? WidgetContainerProvider)?.requestAddWidget()
-                    1 -> startActivity(android.content.Intent(requireContext(),
+                    0 -> startActivity(android.content.Intent(requireContext(),
                         com.diez.stoiclauncher.presentation.settings.SettingsActivity::class.java))
                 }
             }.show(parentFragmentManager, "home_options")
@@ -259,6 +249,7 @@ class BubbleAdapter(
     private var categories: List<CategoryGroup> = emptyList()
     private var textColor = Color.WHITE
     private var secondaryColor = 0xB3FFFFFF.toInt()
+    private var itemHeight: Int? = null
 
     inner class VH(view: View) : RecyclerView.ViewHolder(view) {
         val title: TextView = view.findViewById(R.id.tv_bubble_title)
@@ -278,6 +269,19 @@ class BubbleAdapter(
         textColor = text
         secondaryColor = secondary
         notifyDataSetChanged()
+    }
+
+    fun updateHeight(rv: RecyclerView) {
+        val rows = kotlin.math.max(1, Math.ceil(categories.size / 2.0).toInt())
+        val availableHeight = rv.measuredHeight - rv.paddingTop - rv.paddingBottom
+        if (availableHeight > 0) {
+            val margins = 16 * rv.context.resources.displayMetrics.density
+            val newHeight = (availableHeight / rows) - margins.toInt()
+            if (itemHeight != newHeight) {
+                itemHeight = newHeight
+                notifyDataSetChanged()
+            }
+        }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
@@ -304,6 +308,10 @@ class BubbleAdapter(
                     iv.visibility = View.VISIBLE
                 }
             }
+        }
+
+        itemHeight?.let {
+            holder.itemView.layoutParams.height = it
         }
 
         holder.itemView.setOnClickListener { onBubbleClick(category) }
