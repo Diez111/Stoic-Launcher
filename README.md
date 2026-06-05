@@ -259,3 +259,73 @@ gson                    # GSON (migración de DataStore)
 MIT License — ver [LICENSE](LICENSE)
 
 Los íconos de Arcticons están bajo [Apache 2.0](https://github.com/Arcticons-Team/Arcticons) © Arcticons Team.
+
+---
+
+## ⚡ Rendimiento
+
+Cada decisión de arquitectura fue evaluada para mantener el launcher **ligero, fluido y con bajo consumo de batería**.
+
+### Carga de apps
+
+| Técnica | Detalle |
+|---------|---------|
+| `Dispatchers.IO` | La carga de íconos y el parseo de `appfilter.xml` se ejecutan en hilos de I/O, sin bloquear el main thread |
+| `setHasFixedSize(true)` | Todos los `RecyclerView` declaran tamaño fijo para evitar recálculos de layout |
+| `setItemViewCacheSize(30)` | Cache de 30 vistas recicladas — cubre la pantalla completa sin crear nuevas |
+| `ViewPager2.offscreenPageLimit = 2` | Las 3 páginas se mantienen en memoria para transiciones instantáneas |
+| `MutableStateFlow` | Las listas de apps usan `StateFlow` con `WhileSubscribed(5000)` que cancela el upstream tras 5s de inactividad |
+| `DistinctUntilChanged` implícito | `combine` de flows solo emite cuando algún valor cambia realmente |
+
+### Íconos
+
+| Técnica | Detalle |
+|---------|---------|
+| `ConstantState.newDrawable()` | Los drawables monocromáticos se clonan desde el `ConstantState` sin re-decodificar el recurso |
+| `ColorMatrix` nativo | El filtro de saturación=0 usa `ColorMatrixColorFilter` sobre el GPU, sin overhead de CPU |
+| WebP lossless | Los 82 íconos de Arcticons son WebP comprimidos (~3 KB c/u, total ~250 KB) |
+| VectorDrawable | Los íconos del dock y del launcher son vectores puros — escalan sin pérdida y pesan ~1 KB c/u |
+| `loadBuiltinPackSync()` en `init` | El `appfilter.xml` se parsea una sola vez al construir el `IconPackManager`, nunca en runtime |
+| `iconMap` en memoria | El mapeo paquete→ícono (160 entradas) pesa ~20 KB en RAM — insignificante |
+
+### UI
+
+| Técnica | Detalle |
+|---------|---------|
+| `notifyDataSetChanged()` mínimo | Solo se llama cuando cambian los datos reales (apps instaladas/desinstaladas) |
+| `clipToPadding = false` | Evita recortes durante scroll, pero con `overScrollMode = NEVER` eliminamos el overscroll innecesario |
+| `isNestedScrollingEnabled = false` | La grilla de burbujas no hace scroll — elimina procesamiento de gestos anidados |
+| ViewBinding (`ItemAppBinding`) | El adapter principal usa ViewBinding para evitar `findViewById` repetitivo |
+| `DataStore` en vez de Room | Para preferencias simples (favoritos, aliases, grupos) no se necesita SQLite; DataStore es asíncrono y ligero |
+| `SharedPreferences` para settings | Solo settings de UI (tema, wallpaper, widgets) usan SharedPreferences; cambios infrecuentes |
+
+### Startup
+
+| Técnica | Detalle |
+|---------|---------|
+| `AppContainer` lazy init | Las dependencias se crean en `StoicApplication.onCreate()` en background |
+| `refreshApps()` asíncrono | La primera carga de apps se dispara en `Dispatchers.IO` y emite vía `StateFlow` |
+| Sin `SplashScreen` artificial | El launcher arranca directo a la home — sin pantallas intermedias |
+| `singleTask` launch mode | El `MainActivity` usa `singleTask` para reutilizar la instancia existente |
+| `stateNotNeeded = true` | Android no guarda/restaura el estado de la activity en rotación — el ViewModel lo maneja |
+
+### Memoria
+
+| Técnica | Detalle |
+|---------|---------|
+| `AppModel` data class | Liviana (8 campos), inmutable, `copy()` para modificaciones sin reasignar |
+| `TextIconDrawable` lazy | Solo se instancia como fallback cuando no hay ícono disponible |
+| Sin leaks de Context | El `AppContainer` usa `applicationContext`; los repositories no retienen Activities |
+| `destroy()` explícito | `AppRepositoryImpl.destroy()` desregistra el callback de paquetes y cancela el scope de corrutinas |
+| `SupervisorJob` | Si una corrutina hija falla, no cancela a las demás |
+
+### APK
+
+| Métrica | Valor |
+|---------|-------|
+| Tamaño debug | ~7 MB |
+| Íconos Arcticons | 82 archivos, ~250 KB comprimidos |
+| Vector drawables | 60 archivos, ~60 KB |
+| Código Kotlin | ~35 archivos, ~200 KB compilado |
+| Sin ProGuard/R8 en debug | Se habilita solo en release para reducción adicional (~40%) |
+
