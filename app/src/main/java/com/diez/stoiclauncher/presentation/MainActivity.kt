@@ -35,6 +35,13 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionListener {
 
+    companion object {
+        val sharedViewPool = RecyclerView.RecycledViewPool().apply {
+            setMaxRecycledViews(0, 60)
+            setMaxRecycledViews(1, 40)
+        }
+    }
+
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: HomeViewModel
     lateinit var widgetController: com.diez.stoiclauncher.presentation.controller.WidgetController
@@ -209,6 +216,9 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
             this, androidx.recyclerview.widget.LinearLayoutManager.HORIZONTAL, false
         )
         rvDock.adapter = dockAdapter
+        rvDock.setHasFixedSize(true)
+        rvDock.itemAnimator = null
+        rvDock.setRecycledViewPool(sharedViewPool)
 
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT or ItemTouchHelper.START or ItemTouchHelper.END, 0
@@ -408,7 +418,7 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
         val adapter = MainPagerAdapter(this)
         binding.viewPager.adapter = adapter
         binding.viewPager.orientation = androidx.viewpager2.widget.ViewPager2.ORIENTATION_HORIZONTAL
-        binding.viewPager.offscreenPageLimit = 2
+        binding.viewPager.offscreenPageLimit = 1
         binding.viewPager.currentItem = 1
 
         binding.viewPager.registerOnPageChangeCallback(object : androidx.viewpager2.widget.ViewPager2.OnPageChangeCallback() {

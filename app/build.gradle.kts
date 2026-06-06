@@ -60,7 +60,6 @@ android {
         buildConfig = true
     }
     androidResources {
-        noCompress += "jpg"
     }
 }
 

@@ -98,32 +98,24 @@ app/src/main/java/com/diez/stoiclauncher/
 
 ---
 
-## 🏠 Pantalla principal (Burbujas)
+## 🏠 Pantalla principal (Burbujas / Grupos)
 
-La home muestra **6 burbujas** en una cuadrícula de 2 columnas **sin scroll**:
+La home muestra **hasta 6 burbujas** en una cuadrícula adaptativa de 1 o 2 columnas **sin scroll**:
 
-| Categoría | Apps típicas |
-|-----------|-------------|
-| **Social** | WhatsApp, Instagram, Telegram, Discord, Twitter/X, Reddit |
-| **Finanzas** | Ualá, Mercado Pago, Binance, TradingView, bancos, delivery |
-| **Entretenimiento** | Spotify, YouTube, Netflix, Disney+, juegos, fotos |
-| **Trabajo** | ChatGPT, Chrome, Gmail, Drive, GitHub, VS Code, ofimática |
-| **Sistema** | Configuración, Cámara, Reloj, Calculadora, utilidades |
-| **Otros** | Apps sin categoría específica |
+| Nº burbujas | Layout |
+|---|---|
+| 1-2 | 1 columna, ancho completo |
+| 3-6 | 2 columnas, la última centrada si es impar |
+
+Los grupos son **creados por el usuario**, vacíos por defecto. Las categorías del `AppCategorizer` se usan solo como referencia en el drawer.
 
 ### Interacciones
-- **Toque en burbuja:** abre diálogo fullscreen con todas las apps de esa categoría
-- **Toque largo en burbuja:** menú con opciones para renombrar, ocultar o editar apps
-- **Toque largo en fondo:** añadir widget o ir a configuración
-
-### Categorización
-
-`AppCategorizer` usa dos estrategias:
-1. **API nativa (Android 8+):** `ApplicationInfo.category` para apps del sistema
-2. **Heurística:** análisis de `packageName` con palabras clave
-
-El orden de evaluación es: Social → Finanzas → Entretenimiento → Trabajo → Sistema → Otros.
-Las categorías se pueden **ocultar** o **renombrar** desde el menú de burbuja.
+- **Tap simple:** abre el grupo (instantáneo, `onSingleTapUp`)
+- **Long press + arrastrar:** reordena burbujas (drag & drop nativo via `ItemTouchHelper`)
+- **Long press sin mover (>2s):** menú del grupo (Renombrar / Eliminar / Crear otro)
+- **Long press en fondo:** menú con Crear grupo / Configuración
+- **Dentro de un grupo (long press en app):** Quitar del grupo / Agregar a otro grupo / Crear grupo / Lanzar
+- **Long press en título del grupo:** menú de grupo (Renombrar / Eliminar)
 
 ---
 
@@ -184,8 +176,15 @@ El launcher usa un **ViewPager2 horizontal** con 3 páginas:
 - **Home:** reloj, fecha, área de widgets, burbujas de categorías
 - **Drawer:** buscador universal con teclado automático + lista de todas las apps
 
-### Dock inferior
-Barra flotante con 4 íconos rápidos (teléfono, mapas, música, mensajes). Se oculta al deslizar hacia el drawer.
+### Dock dinámico
+Barra flotante con **hasta 6 apps** personalizables. Se oculta al deslizar hacia el drawer.
+
+- **Toque simple:** lanza la app
+- **Long press + arrastrar:** reordena íconos (drag & drop nativo)
+- **Doble toque:** menú Quitar del dock / Reemplazar
+- **Botón "+":** agrega apps al dock (selector con búsqueda en tiempo real)
+- Persistencia en DataStore (`dockAppsFlow`)
+- Íconos via `IconPackManager` (pack Arcticons integrado)
 
 ---
 
@@ -270,62 +269,82 @@ Cada decisión de arquitectura fue evaluada para mantener el launcher **ligero, 
 
 | Técnica | Detalle |
 |---------|---------|
-| `Dispatchers.IO` | La carga de íconos y el parseo de `appfilter.xml` se ejecutan en hilos de I/O, sin bloquear el main thread |
+| `Dispatchers.IO` | La carga de íconos y el parseo de `appfilter.xml` se ejecutan en hilos de I/O |
 | `setHasFixedSize(true)` | Todos los `RecyclerView` declaran tamaño fijo para evitar recálculos de layout |
-| `setItemViewCacheSize(30)` | Cache de 30 vistas recicladas — cubre la pantalla completa sin crear nuevas |
-| `ViewPager2.offscreenPageLimit = 2` | Las 3 páginas se mantienen en memoria para transiciones instantáneas |
-| `MutableStateFlow` | Las listas de apps usan `StateFlow` con `WhileSubscribed(5000)` que cancela el upstream tras 5s de inactividad |
+| `setItemViewCacheSize(30)` | Cache de 30 vistas recicladas en el drawer |
+| `MutableStateFlow` | Las listas de apps usan `StateFlow` con `WhileSubscribed(1000)` que cancela el upstream tras 1s de inactividad |
 | `DistinctUntilChanged` implícito | `combine` de flows solo emite cuando algún valor cambia realmente |
-
-### Íconos
-
-| Técnica | Detalle |
-|---------|---------|
-| `ConstantState.newDrawable()` | Los drawables monocromáticos se clonan desde el `ConstantState` sin re-decodificar el recurso |
-| `ColorMatrix` nativo | El filtro de saturación=0 usa `ColorMatrixColorFilter` sobre el GPU, sin overhead de CPU |
-| WebP lossless | Los 82 íconos de Arcticons son WebP comprimidos (~3 KB c/u, total ~250 KB) |
-| VectorDrawable | Los íconos del dock y del launcher son vectores puros — escalan sin pérdida y pesan ~1 KB c/u |
-| `loadBuiltinPackSync()` en `init` | El `appfilter.xml` se parsea una sola vez al construir el `IconPackManager`, nunca en runtime |
-| `iconMap` en memoria | El mapeo paquete→ícono (160 entradas) pesa ~20 KB en RAM — insignificante |
-
-### UI
-
-| Técnica | Detalle |
-|---------|---------|
-| `notifyDataSetChanged()` mínimo | Solo se llama cuando cambian los datos reales (apps instaladas/desinstaladas) |
-| `clipToPadding = false` | Evita recortes durante scroll, pero con `overScrollMode = NEVER` eliminamos el overscroll innecesario |
-| `isNestedScrollingEnabled = false` | La grilla de burbujas no hace scroll — elimina procesamiento de gestos anidados |
-| ViewBinding (`ItemAppBinding`) | El adapter principal usa ViewBinding para evitar `findViewById` repetitivo |
-| `DataStore` en vez de Room | Para preferencias simples (favoritos, aliases, grupos) no se necesita SQLite; DataStore es asíncrono y ligero |
-| `SharedPreferences` para settings | Solo settings de UI (tema, wallpaper, widgets) usan SharedPreferences; cambios infrecuentes |
 
 ### Startup
 
 | Técnica | Detalle |
 |---------|---------|
 | `AppContainer` lazy init | Las dependencias se crean en `StoicApplication.onCreate()` en background |
-| `refreshApps()` asíncrono | La primera carga de apps se dispara en `Dispatchers.IO` y emite vía `StateFlow` |
+| `refreshApps()` + listado en paralelo | La UI muestra la lista en caché inmediatamente; el refresh corre en `Dispatchers.IO` por separado |
 | Sin `SplashScreen` artificial | El launcher arranca directo a la home — sin pantallas intermedias |
 | `singleTask` launch mode | El `MainActivity` usa `singleTask` para reutilizar la instancia existente |
 | `stateNotNeeded = true` | Android no guarda/restaura el estado de la activity en rotación — el ViewModel lo maneja |
+
+### Íconos
+
+| Técnica | Detalle |
+|---------|---------|
+| `ColorMatrix` estático | Un solo `ColorMatrixColorFilter` en `companion object` de cada adapter, reusado en todos los binds |
+| `ConstantState.newDrawable()` | Los drawables monocromáticos se clonan desde el `ConstantState` sin re-decodificar el recurso |
+| `ColorMatrix` nativo GPU | El filtro de saturación=0 corre en GPU, sin overhead de CPU |
+| WebP lossless | Los 82 íconos de Arcticons son WebP comprimidos (~3 KB c/u, total ~250 KB) |
+| `loadBuiltinPackSync()` en `init` | El `appfilter.xml` se parsea una sola vez al construir el `IconPackManager` |
+| `iconMap` en memoria | 160 entradas, ~20 KB en RAM |
+| Refresh incremental | Al instalar/desinstalar una app, solo se actualiza ESA app (`incrementalRefresh`/`incrementalRemove`), no las 100+ |
+| Carga paralela | `refreshApps()` en IO + `getInstalledAppsUseCase` en main — la UI no espera |
+
+### UI
+
+| Técnica | Detalle |
+|---------|---------|
+| `DiffUtil` + `AsyncListDiffer` | `BubbleAdapter` y `AppAdapter` usan DiffUtil para updates parciales con animaciones suaves |
+| `itemAnimator = null` | Dock, drawer y burbujas deshabilitan el animador por defecto — elimina jank en scroll |
+| `RecycledViewPool` compartido | Dock, drawer y burbujas comparten un solo pool (60 vistas tipo 0, 40 tipo 1) |
+| `LAYER_TYPE_HARDWARE` | La grilla de burbujas se renderiza en capa GPU dedicada |
+| `offscreenPageLimit = 1` | Solo 2 páginas del ViewPager2 en memoria (actual + adyacente) |
+| `isNestedScrollingEnabled = false` | La grilla de burbujas no hace scroll — elimina procesamiento de gestos anidados |
+| ViewBinding (`ItemAppBinding`) | El adapter principal usa ViewBinding para evitar `findViewById` repetitivo |
+
+### Corrutinas y Flows
+
+| Técnica | Detalle |
+|---------|---------|
+| `WhileSubscribed(1000)` | Todos los `stateIn()` cancelan el upstream 1s después del último suscriptor (antes 5s) |
+| `Eagerly` para UI | Colores de acento y wallpaper usan `SharingStarted.Eagerly` — siempre disponibles |
+| `SupervisorJob` | Si una corrutina hija falla, no cancela a las demás |
 
 ### Memoria
 
 | Técnica | Detalle |
 |---------|---------|
 | `AppModel` data class | Liviana (8 campos), inmutable, `copy()` para modificaciones sin reasignar |
-| `TextIconDrawable` lazy | Solo se instancia como fallback cuando no hay ícono disponible |
 | Sin leaks de Context | El `AppContainer` usa `applicationContext`; los repositories no retienen Activities |
 | `destroy()` explícito | `AppRepositoryImpl.destroy()` desregistra el callback de paquetes y cancela el scope de corrutinas |
-| `SupervisorJob` | Si una corrutina hija falla, no cancela a las demás |
 
 ### APK
 
 | Métrica | Valor |
 |---------|-------|
 | Tamaño debug | ~7 MB |
-| Íconos Arcticons | 82 archivos, ~250 KB comprimidos |
-| Vector drawables | 60 archivos, ~60 KB |
+| Íconos Arcticons | 82 archivos WebP, ~250 KB comprimidos |
+| Vector drawables | 60 archivos XML, ~60 KB |
 | Código Kotlin | ~35 archivos, ~200 KB compilado |
-| Sin ProGuard/R8 en debug | Se habilita solo en release para reducción adicional (~40%) |
+| ProGuard/R8 solo en release | Reducción adicional ~40% |
+
+---
+
+## 🔬 Límites de uso
+
+El launcher puede **bloquear apps por tiempo diario** mediante `StoicAccessibilityService`:
+
+- **Configurar:** long press en app → Límite de Uso → elegir minutos (0-180)
+- **Enforcement:** el servicio de accesibilidad detecta la app en foreground y bloquea con overlay si se excedió
+- **Visualización:** en Ajustes → Límites de uso muestra el tiempo usado hoy por cada app
+- **Edición:** selector con SeekBar y tiempo actual visible
+- Requiere permiso `PACKAGE_USAGE_STATS`
 

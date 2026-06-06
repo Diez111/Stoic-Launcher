@@ -1,5 +1,7 @@
 package com.diez.stoiclauncher.presentation.home
 
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.DiffUtil
@@ -13,6 +15,12 @@ class AppAdapter(
     private val onAppLongClick: (AppModel) -> Boolean,
     private val hideLabelsForSingleApps: Boolean = false
 ) : ListAdapter<AppModel, AppAdapter.AppViewHolder>(AppDiffCallback()) {
+
+    companion object {
+        private val MONO_FILTER = ColorMatrixColorFilter(
+            ColorMatrix().apply { setSaturation(0f) }
+        )
+    }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): AppViewHolder {
         val binding = ItemAppBinding.inflate(LayoutInflater.from(parent.context), parent, false)
@@ -76,11 +84,7 @@ class AppAdapter(
             if (app.icon != null) {
                 binding.ivIcon.setImageDrawable(app.icon)
                 binding.ivIcon.visibility = android.view.View.VISIBLE
-                
-                val matrix = android.graphics.ColorMatrix()
-                matrix.setSaturation(0f)
-                val filter = android.graphics.ColorMatrixColorFilter(matrix)
-                binding.ivIcon.colorFilter = filter
+                binding.ivIcon.colorFilter = MONO_FILTER
             } else {
                 binding.ivIcon.visibility = android.view.View.GONE
             }

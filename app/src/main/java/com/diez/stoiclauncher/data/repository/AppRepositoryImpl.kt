@@ -27,13 +27,13 @@ class AppRepositoryImpl(
 
     private val callback = object : android.content.pm.LauncherApps.Callback() {
         override fun onPackageAdded(packageName: String, user: android.os.UserHandle) {
-             callbackScope.launch { refreshApps() }
+             callbackScope.launch { incrementalRefresh(packageName) }
         }
         override fun onPackageRemoved(packageName: String, user: android.os.UserHandle) {
-             callbackScope.launch { refreshApps() }
+             callbackScope.launch { incrementalRemove(packageName) }
         }
         override fun onPackageChanged(packageName: String, user: android.os.UserHandle) {
-             callbackScope.launch { refreshApps() }
+             callbackScope.launch { incrementalRefresh(packageName) }
         }
         override fun onPackagesAvailable(packageNames: Array<out String>?, user: android.os.UserHandle, replacing: Boolean) {
              callbackScope.launch { refreshApps() }
@@ -84,50 +84,68 @@ class AppRepositoryImpl(
 
     override suspend fun refreshApps() {
         withContext(Dispatchers.IO) {
-            val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
-            val userManager = context.getSystemService(Context.USER_SERVICE) as android.os.UserManager
-            
-            val profiles = userManager.userProfiles
-            val appModels = mutableListOf<AppModel>()
-            
-            for (userHandle in profiles) {
-                val activities = launcherApps.getActivityList(null, userHandle)
-                for (activity in activities) {
-                    var icon: android.graphics.drawable.Drawable? = null
-                    
-                    if (iconPackManager.isStoicMinimal) {
-                        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                            val originalIcon = activity.getIcon(0)
-                            if (originalIcon is android.graphics.drawable.AdaptiveIconDrawable && originalIcon.monochrome != null) {
-                                icon = originalIcon.monochrome?.constantState?.newDrawable()?.mutate()?.apply {
-                                    setTint(android.graphics.Color.WHITE)
-                                }
-                            }
-                        }
-                        if (icon == null) {
-                            icon = activity.getIcon(0)
-                        }
-                    } else {
-                        icon = iconPackManager.getIcon(activity.componentName)
-                    }
-                    
-                    if (icon == null) {
-                        icon = activity.getIcon(0)
-                    }
+            _installedApps.emit(loadAllApps())
+        }
+    }
 
-                    appModels.add(
-                        AppModel(
-                            label = activity.label.toString(),
-                            packageName = activity.applicationInfo.packageName,
-                            icon = icon,
-                            user = userHandle,
-                            category = com.diez.stoiclauncher.domain.util.AppCategorizer.getCategory(activity.applicationInfo)
-                        )
-                    )
+    private fun loadAllApps(): List<AppModel> {
+        val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
+        val userManager = context.getSystemService(Context.USER_SERVICE) as android.os.UserManager
+        val profiles = userManager.userProfiles
+        val appModels = mutableListOf<AppModel>()
+
+        for (userHandle in profiles) {
+            val activities = launcherApps.getActivityList(null, userHandle)
+            for (activity in activities) {
+                appModels.add(createAppModel(activity, userHandle))
+            }
+        }
+        return appModels
+    }
+
+    private fun createAppModel(activity: android.content.pm.LauncherActivityInfo, user: android.os.UserHandle): AppModel {
+        var icon: android.graphics.drawable.Drawable? = null
+        if (iconPackManager.isStoicMinimal) {
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                val originalIcon = activity.getIcon(0)
+                if (originalIcon is android.graphics.drawable.AdaptiveIconDrawable && originalIcon.monochrome != null) {
+                    icon = originalIcon.monochrome?.constantState?.newDrawable()?.mutate()?.apply {
+                        setTint(android.graphics.Color.WHITE)
+                    }
                 }
             }
-            _installedApps.emit(appModels)
+            if (icon == null) icon = activity.getIcon(0)
+        } else {
+            icon = iconPackManager.getIcon(activity.componentName)
         }
+        if (icon == null) icon = activity.getIcon(0)
+
+        return AppModel(
+            label = activity.label.toString(),
+            packageName = activity.applicationInfo.packageName,
+            icon = icon,
+            user = user,
+            category = com.diez.stoiclauncher.domain.util.AppCategorizer.getCategory(activity.applicationInfo)
+        )
+    }
+
+    private suspend fun incrementalRefresh(packageName: String) = withContext(Dispatchers.IO) {
+        val current = _installedApps.value.toMutableList()
+        current.removeAll { it.packageName == packageName }
+        val userManager = context.getSystemService(Context.USER_SERVICE) as android.os.UserManager
+        for (user in userManager.userProfiles) {
+            val activities = launcherApps.getActivityList(packageName, user)
+            for (activity in activities) {
+                current.add(createAppModel(activity, user))
+            }
+        }
+        _installedApps.emit(current)
+    }
+
+    private suspend fun incrementalRemove(packageName: String) = withContext(Dispatchers.IO) {
+        val current = _installedApps.value.toMutableList()
+        current.removeAll { it.packageName == packageName }
+        _installedApps.emit(current)
     }
     
     override fun filterApps(apps: List<AppModel>, query: String): List<AppModel> {

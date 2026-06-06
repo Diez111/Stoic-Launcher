@@ -46,7 +46,7 @@ class HomeViewModel(
          val nonGroupedApps = apps.filter { it.groupId == null }
          
          (groupItems + nonGroupedApps).sortedBy { it.label.lowercase() }
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000), emptyList())
 
     val allAppsState: StateFlow<List<AppModel>> = combine(_uiState, _searchQuery) { rawApps, query ->
         if (query.isNotEmpty()) {
@@ -54,7 +54,7 @@ class HomeViewModel(
         } else {
              rawApps.sortedBy { it.label.lowercase() }
         }
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000), emptyList())
 
     val accentColor = settingsRepository.accentColor
         .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.Eagerly, android.graphics.Color.BLACK)
@@ -94,15 +94,17 @@ class HomeViewModel(
         (groupItems + favoriteApps).distinctBy { it.uniqueId }.sortedBy { 
              if (it.isGroup) "0${it.label.lowercase()}" else "1${it.label.lowercase()}"
         }
-    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyList())
+    }.flowOn(Dispatchers.Default).stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000), emptyList())
 
     init {
         loadApps()
     }
 
     private fun loadApps() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             refreshAppsUseCase()
+        }
+        viewModelScope.launch {
             getInstalledAppsUseCase(includeHidden = false).collect { apps ->
                  _uiState.value = apps
             }
@@ -190,7 +192,7 @@ class HomeViewModel(
     }
 
     val shortcutsState: StateFlow<Map<String, String>> = settingsRepository.appShortcutsFlow
-        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(5000), emptyMap())
+        .stateIn(viewModelScope, kotlinx.coroutines.flow.SharingStarted.WhileSubscribed(1000), emptyMap())
 
     fun setAppShortcut(position: String, packageName: String?) {
         viewModelScope.launch {

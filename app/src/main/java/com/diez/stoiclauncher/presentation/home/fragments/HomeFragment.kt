@@ -15,6 +15,7 @@ import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.RecyclerView
@@ -69,8 +70,11 @@ class HomeFragment : Fragment() {
 
         rvBubbles.adapter = bubbleAdapter
         rvBubbles.setHasFixedSize(true)
+        rvBubbles.itemAnimator = null
+        rvBubbles.setRecycledViewPool(com.diez.stoiclauncher.presentation.MainActivity.sharedViewPool)
         rvBubbles.isNestedScrollingEnabled = false
         rvBubbles.overScrollMode = View.OVER_SCROLL_NEVER
+        rvBubbles.setLayerType(View.LAYER_TYPE_HARDWARE, null)
 
         val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.UP or ItemTouchHelper.DOWN or
@@ -445,8 +449,14 @@ class BubbleAdapter(
     inner class AddVH(view: View) : RecyclerView.ViewHolder(view)
 
     fun submitCategories(list: List<CategoryGroup>) {
+        val diff = DiffUtil.calculateDiff(object : DiffUtil.Callback() {
+            override fun getOldListSize() = categories.size
+            override fun getNewListSize() = list.size
+            override fun areItemsTheSame(o: Int, n: Int) = categories[o].originalName == list[n].originalName
+            override fun areContentsTheSame(o: Int, n: Int) = categories[o] == list[n]
+        })
         categories = list
-        notifyDataSetChanged()
+        diff.dispatchUpdatesTo(this@BubbleAdapter)
     }
 
     fun moveItem(fromPos: Int, toPos: Int) {

@@ -54,8 +54,10 @@ class DrawerFragment : Fragment() {
         
         rvAllApps.layoutManager = LinearLayoutManager(requireContext())
         rvAllApps.adapter = adapter
-        rvAllApps.setHasFixedSize(true) // Performance optimization
-        rvAllApps.setItemViewCacheSize(30) // Cache more items for smooth scrolling
+        rvAllApps.setHasFixedSize(true)
+        rvAllApps.setItemViewCacheSize(30)
+        rvAllApps.itemAnimator = null
+        rvAllApps.setRecycledViewPool(com.diez.stoiclauncher.presentation.MainActivity.sharedViewPool)
         
         etSearch.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
