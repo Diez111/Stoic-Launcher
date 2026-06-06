@@ -33,9 +33,9 @@
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
-        android:paddingHorizontal="24dp"
-        android:paddingBottom="24dp"
-        android:paddingTop="8dp"
+        android:paddingHorizontal="16dp"
+        android:paddingBottom="20dp"
+        android:paddingTop="6dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
@@ -45,55 +45,33 @@
             android:layout_height="wrap_content"
             android:background="@drawable/bg_bubble"
             android:orientation="horizontal"
-            android:paddingHorizontal="24dp"
-            android:paddingVertical="12dp">
+            android:gravity="center_vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="8dp">
 
-            <ImageView
-                android:id="@+id/btn_whatsapp"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_dock_phone"
-                android:contentDescription="Teléfono"
-                android:background="?attr/selectableItemBackgroundBorderless"/>
-
-            <View
-                android:layout_width="24dp"
-                android:layout_height="1dp"
-                android:background="@android:color/transparent"/>
-
-            <ImageView
-                android:id="@+id/btn_maps"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_dock_maps"
-                android:contentDescription="Mapas"
-                android:background="?attr/selectableItemBackgroundBorderless"/>
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/rv_dock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
 
             <View
-                android:layout_width="24dp"
-                android:layout_height="1dp"
-                android:background="@android:color/transparent"/>
+                android:id="@+id/dock_divider"
+                android:layout_width="1dp"
+                android:layout_height="24dp"
+                android:layout_marginHorizontal="6dp"
+                android:background="#33FFFFFF"
+                android:visibility="visible" />
 
             <ImageView
-                android:id="@+id/btn_spotify"
+                android:id="@+id/btn_dock_add"
                 android:layout_width="28dp"
                 android:layout_height="28dp"
-                android:src="@drawable/ic_dock_music"
-                android:contentDescription="Música"
-                android:background="?attr/selectableItemBackgroundBorderless"/>
+                android:src="@android:drawable/ic_input_add"
+                android:contentDescription="Agregar al dock"
+                android:background="?attr/selectableItemBackgroundBorderless" />
 
-            <View
-                android:layout_width="24dp"
-                android:layout_height="1dp"
-                android:background="@android:color/transparent"/>
-
-            <ImageView
-                android:id="@+id/btn_messages"
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:src="@drawable/ic_dock_messages"
-                android:contentDescription="Mensajes"
-                android:background="?attr/selectableItemBackgroundBorderless"/>
         </LinearLayout>
     </LinearLayout>
 

@@ -29,6 +29,8 @@ class AppPreferencesRepository(private val context: Context) {
         val APP_GROUPS_KEY = stringPreferencesKey("app_groups")
         val APP_SHORTCUTS_KEY = stringPreferencesKey("app_shortcuts")
         val ICON_PACK_KEY = stringPreferencesKey("icon_pack")
+        val USER_GROUPS_LIST_KEY = stringPreferencesKey("user_groups_list")
+        val DOCK_APPS_KEY = stringPreferencesKey("dock_apps")
     }
 
     val hiddenAppsFlow: Flow<Set<String>> = context.dataStore.data.map { preferences ->
@@ -162,6 +164,77 @@ class AppPreferencesRepository(private val context: Context) {
             } else {
                 preferences[ICON_PACK_KEY] = packageName
             }
+        }
+    }
+
+    val userGroupsListFlow: Flow<List<String>> = context.dataStore.data.map { preferences ->
+        val json = preferences[USER_GROUPS_LIST_KEY] ?: "[]"
+        val type = object : TypeToken<List<String>>() {}.type
+        gson.fromJson(json, type) ?: emptyList()
+    }
+
+    suspend fun addUserGroup(name: String) {
+        context.dataStore.edit { preferences ->
+            val json = preferences[USER_GROUPS_LIST_KEY] ?: "[]"
+            val type = object : TypeToken<MutableList<String>>() {}.type
+            val list: MutableList<String> = gson.fromJson(json, type) ?: mutableListOf()
+            if (!list.contains(name)) {
+                list.add(name)
+                preferences[USER_GROUPS_LIST_KEY] = gson.toJson(list)
+            }
+        }
+    }
+
+    suspend fun removeUserGroup(name: String) {
+        context.dataStore.edit { preferences ->
+            val json = preferences[USER_GROUPS_LIST_KEY] ?: "[]"
+            val type = object : TypeToken<MutableList<String>>() {}.type
+            val list: MutableList<String> = gson.fromJson(json, type) ?: mutableListOf()
+            list.remove(name)
+            preferences[USER_GROUPS_LIST_KEY] = gson.toJson(list)
+        }
+    }
+
+    suspend fun reorderUserGroups(ordered: List<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[USER_GROUPS_LIST_KEY] = gson.toJson(ordered)
+        }
+    }
+
+    val dockAppsFlow: Flow<List<String>> = context.dataStore.data.map { preferences ->
+        val json = preferences[DOCK_APPS_KEY] ?: "[]"
+        val type = object : TypeToken<List<String>>() {}.type
+        gson.fromJson(json, type) ?: emptyList()
+    }
+
+    suspend fun addDockApp(packageName: String): Boolean {
+        var added = false
+        context.dataStore.edit { preferences ->
+            val json = preferences[DOCK_APPS_KEY] ?: "[]"
+            val type = object : TypeToken<MutableList<String>>() {}.type
+            val list: MutableList<String> = gson.fromJson(json, type) ?: mutableListOf()
+            if (!list.contains(packageName) && list.size < 6) {
+                list.add(packageName)
+                preferences[DOCK_APPS_KEY] = gson.toJson(list)
+                added = true
+            }
+        }
+        return added
+    }
+
+    suspend fun removeDockApp(packageName: String) {
+        context.dataStore.edit { preferences ->
+            val json = preferences[DOCK_APPS_KEY] ?: "[]"
+            val type = object : TypeToken<MutableList<String>>() {}.type
+            val list: MutableList<String> = gson.fromJson(json, type) ?: mutableListOf()
+            list.remove(packageName)
+            preferences[DOCK_APPS_KEY] = gson.toJson(list)
+        }
+    }
+
+    suspend fun reorderDockApps(ordered: List<String>) {
+        context.dataStore.edit { preferences ->
+            preferences[DOCK_APPS_KEY] = gson.toJson(ordered)
         }
     }
 }

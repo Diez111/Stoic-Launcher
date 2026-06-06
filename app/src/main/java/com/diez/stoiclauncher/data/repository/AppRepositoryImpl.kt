@@ -133,31 +133,28 @@ class AppRepositoryImpl(
     override fun filterApps(apps: List<AppModel>, query: String): List<AppModel> {
         val normalizedQuery = query.trim().lowercase()
         if (normalizedQuery.isEmpty()) return apps
-        
+
+        val queryNoAccent = java.text.Normalizer.normalize(normalizedQuery, java.text.Normalizer.Form.NFD)
+            .replace(Regex("\\p{M}"), "")
+
         return apps.filter { app ->
             val label = app.label.lowercase()
-            // 1. Contains
+            val labelNoAccent = java.text.Normalizer.normalize(label, java.text.Normalizer.Form.NFD)
+                .replace(Regex("\\p{M}"), "")
+
+            if (labelNoAccent.contains(queryNoAccent)) return@filter true
             if (label.contains(normalizedQuery)) return@filter true
-            
-            // 2. Fuzzy / Typos (Levenshtein + Subsequence)
-            if (normalizedQuery.length > 2) {
-                 val distance = levenshtein(label, normalizedQuery)
-                 // If distance is small enough considering query length
-                 // E.g. "wats" (4) vs "whatsapp" (8). Distance is 4. mismatch.
-                 // "wats" vs "whats" (5). Distance 1. Match?
-                 // We want to match "wats" to "whatsapp". "wats" matches "whats" (prefix of whatsapp).
-                 // So check if query is close to ANY substring of label? That's complex.
-                 // Let's settle for: Label starts with or Contains is handled.
-                 // Levenshtein between Query and Label? No, Label is usually longer.
-                 // Levenshtein between Query and START of Label?
-                 // Or Query and any word in Label?
-                 
-                 // For "wats" -> "WhatsApp":
-                 // "wats" distance to "what" is 1.
-                 // Let's implement a simple "Fuzzy Contains":
-                 // Can we transform query "wats" to regex "w.*a.*t.*s"? (Subsequence)
-                 if (isSubsequence(normalizedQuery, label)) return@filter true
+
+            if (queryNoAccent.length >= 1) {
+                if (isSubsequence(queryNoAccent, labelNoAccent)) return@filter true
             }
+
+            if (queryNoAccent.length in 2..3) {
+                val labelStart = labelNoAccent.take(normalizedQuery.length + 1)
+                val dist = levenshtein(labelStart, queryNoAccent)
+                if (dist <= 1) return@filter true
+            }
+
             false
         }
     }

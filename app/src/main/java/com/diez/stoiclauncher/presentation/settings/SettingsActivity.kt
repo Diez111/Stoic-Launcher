@@ -7,6 +7,7 @@ import androidx.appcompat.widget.SwitchCompat
 import com.diez.stoiclauncher.R
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.first
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -416,115 +417,124 @@ class SettingsActivity : AppCompatActivity() {
     private fun showUsageLimitsManager() {
         val dialog = android.app.Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
         dialog.setContentView(R.layout.dialog_folder_overlay)
-        
+
         val tvTitle = dialog.findViewById<android.widget.TextView>(R.id.tv_folder_title)
         val rvApps = dialog.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.rv_folder_apps)
         val btnClose = dialog.findViewById<android.view.View>(R.id.btn_close_folder)
-        
-        tvTitle.text = "Apps Limitadas"
-        
+
+        tvTitle.text = "Límites de Uso"
+
         rvApps.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
-        
+
         btnClose.setOnClickListener { dialog.dismiss() }
-        
+
+        val usageManager = (application as com.diez.stoiclauncher.StoicApplication).container.appUsageManager
+        val appContainer = (application as com.diez.stoiclauncher.StoicApplication).container
+
         val job = kotlinx.coroutines.MainScope().launch {
-            val appContainer = (application as com.diez.stoiclauncher.StoicApplication).container
             appContainer.settingsRepository.allAppUsageLimits.collect { limits ->
-                 val restrictedPackages = limits.filter { it.value > 0 }
-                 
-                 // Resolve Apps
-                 val resolvedApps = mutableListOf<Pair<com.diez.stoiclauncher.domain.model.AppModel, Int>>()
-                 val launcherApps = getSystemService(android.content.Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
-                 val userManager = getSystemService(android.content.Context.USER_SERVICE) as android.os.UserManager
-                 
-                 restrictedPackages.forEach { (pkg, minutes) ->
-                     try {
-                         for (user in userManager.userProfiles) {
-                             val list = launcherApps.getActivityList(pkg, user)
-                             if (list.isNotEmpty()) {
-                                 val info = list[0]
-                                 val model = com.diez.stoiclauncher.domain.model.AppModel(
-                                     label = info.label.toString(),
-                                     packageName = pkg,
-                                     icon = info.getIcon(0),
-                                     user = user,
-                                     category = null
-                                 )
-                                 resolvedApps.add(model to minutes)
-                                 break
-                             }
-                         }
-                      } catch (e: Exception) {
+                val restrictedPackages = limits.filter { it.value > 0 }
+
+                val resolvedApps = mutableListOf<Triple<com.diez.stoiclauncher.domain.model.AppModel, Int, Int>>()
+                val launcherApps = getSystemService(android.content.Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
+                val userManager = getSystemService(android.content.Context.USER_SERVICE) as android.os.UserManager
+
+                restrictedPackages.forEach { (pkg, minutes) ->
+                    try {
+                        for (user in userManager.userProfiles) {
+                            val list = launcherApps.getActivityList(pkg, user)
+                            if (list.isNotEmpty()) {
+                                val info = list[0]
+                                val model = com.diez.stoiclauncher.domain.model.AppModel(
+                                    label = info.label.toString(),
+                                    packageName = pkg,
+                                    icon = info.getIcon(0),
+                                    user = user,
+                                    category = null
+                                )
+                                val used = usageManager.getUsedMinutesToday(pkg)
+                                resolvedApps.add(Triple(model, minutes, used))
+                                break
+                            }
+                        }
+                    } catch (e: Exception) {
                         android.util.Log.w("SettingsActivity", "Could not resolve usage limit app: $pkg", e)
-                      }
-                  }
-                 
-                 rvApps.adapter = RestrictedAppsAdapter(resolvedApps) { app ->
-                     // Edit / Remove Limit Dialog
-                     val options = arrayOf("Eliminar Límite", "30 minutos", "1 hora", "1 hora 30 min", "2 horas", "3 horas")
-                     val values = intArrayOf(0, 30, 60, 90, 120, 180)
-                     
-                     androidx.appcompat.app.AlertDialog.Builder(this@SettingsActivity)
-                         .setTitle(app.label)
-                         .setItems(options) { _, which ->
-                             kotlinx.coroutines.MainScope().launch {
-                                 appContainer.settingsRepository.setAppUsageLimit(app.packageName, values[which])
-                                 if (values[which] == 0) {
-                                     android.widget.Toast.makeText(this@SettingsActivity, "Límite eliminado para ${app.label}", android.widget.Toast.LENGTH_SHORT).show()
-                                 } else {
-                                     android.widget.Toast.makeText(this@SettingsActivity, "Límite actualizado: ${options[which]}", android.widget.Toast.LENGTH_SHORT).show()
-                                 }
-                             }
-                         }
-                         .setNegativeButton("Cancelar", null)
-                         .show()
-                 }
-                 
-                 if (resolvedApps.isEmpty()) {
-                     tvTitle.text = "Sin restricciones"
-                 } else {
-                     tvTitle.text = "Apps Limitadas"
-                 }
+                    }
+                }
+
+                rvApps.adapter = UsageLimitAdapter(resolvedApps) { app, limitMin ->
+                    showEditLimitSheet(app, limitMin, appContainer)
+                }
+
+                if (resolvedApps.isEmpty()) {
+                    tvTitle.text = "Sin restricciones"
+                } else {
+                    tvTitle.text = "Apps Limitadas"
+                }
             }
         }
-        
+
         dialog.setOnDismissListener { job.cancel() }
         dialog.show()
     }
 
+    private fun showEditLimitSheet(
+        app: com.diez.stoiclauncher.domain.model.AppModel,
+        currentLimit: Int,
+        appContainer: com.diez.stoiclauncher.core.di.AppContainer
+    ) {
+        kotlinx.coroutines.MainScope().launch {
+            val accentColor = appContainer.settingsRepository.accentColor.first()
+            val options = listOf(
+                "Sin límite" to 0, "5 minutos" to 5, "15 minutos" to 15,
+                "30 minutos" to 30, "45 minutos" to 45, "1 hora" to 60,
+                "1h 30m" to 90, "2 horas" to 120, "3 horas" to 180
+            )
+            val labels = options.map { (label, mins) ->
+                if (mins == currentLimit) "$label ✓" else label
+            }
+            val vals = options.map { it.second }
 
-    inner class RestrictedAppsAdapter(
-        private val items: List<Pair<com.diez.stoiclauncher.domain.model.AppModel, Int>>,
-        private val onItemClick: (com.diez.stoiclauncher.domain.model.AppModel) -> Unit
-    ) : androidx.recyclerview.widget.RecyclerView.Adapter<RestrictedAppsAdapter.ViewHolder>() {
+            val bottomSheet = com.diez.stoiclauncher.presentation.common.BottomSheetMenu(
+                app.label, labels.map { com.diez.stoiclauncher.presentation.common.MenuOption(it) },
+                accentColor
+            ) { index ->
+                kotlinx.coroutines.MainScope().launch {
+                    appContainer.settingsRepository.setAppUsageLimit(app.packageName, vals[index])
+                }
+            }
+            bottomSheet.show(supportFragmentManager, "EditLimit")
+        }
+    }
+
+
+    inner class UsageLimitAdapter(
+        private val items: List<Triple<com.diez.stoiclauncher.domain.model.AppModel, Int, Int>>,
+        private val onItemClick: (com.diez.stoiclauncher.domain.model.AppModel, Int) -> Unit
+    ) : androidx.recyclerview.widget.RecyclerView.Adapter<UsageLimitAdapter.ViewHolder>() {
 
         inner class ViewHolder(view: android.view.View) : androidx.recyclerview.widget.RecyclerView.ViewHolder(view) {
             val ivIcon: android.widget.ImageView = view.findViewById(R.id.iv_icon)
             val tvLabel: android.widget.TextView = view.findViewById(R.id.tv_label)
+            val tvUsage: android.widget.TextView = view.findViewById(R.id.tv_usage)
         }
 
         override fun onCreateViewHolder(parent: android.view.ViewGroup, viewType: Int): ViewHolder {
-            val view = android.view.LayoutInflater.from(parent.context).inflate(R.layout.item_app_list, parent, false)
+            val view = android.view.LayoutInflater.from(parent.context).inflate(R.layout.item_usage_limit, parent, false)
             return ViewHolder(view)
         }
 
         override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-            val (app, minutes) = items[position]
+            val (app, limit, used) = items[position]
             holder.ivIcon.setImageDrawable(app.icon)
-            
-            val hours = minutes / 60
-            val mins = minutes % 60
-            val timeStr = if (hours > 0 && mins > 0) "$hours h $mins m" else if (hours > 0) "$hours h" else "$minutes m"
-            
-            holder.tvLabel.text = "${app.label} : $timeStr"
-            
-            // Apply monochrome filter
+            holder.tvLabel.text = "${app.label} — $limit min/día"
+            holder.tvUsage.text = "$used min usados hoy"
+
             val matrix = android.graphics.ColorMatrix()
             matrix.setSaturation(0f)
-            val filter = android.graphics.ColorMatrixColorFilter(matrix)
-            holder.ivIcon.colorFilter = filter
-            
-            holder.itemView.setOnClickListener { onItemClick(app) }
+            holder.ivIcon.colorFilter = android.graphics.ColorMatrixColorFilter(matrix)
+
+            holder.itemView.setOnClickListener { onItemClick(app, limit) }
         }
 
         override fun getItemCount() = items.size

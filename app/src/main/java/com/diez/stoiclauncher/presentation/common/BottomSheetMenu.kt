@@ -28,35 +28,23 @@ class BottomSheetMenu(
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        
-        // Resolve Color
+
         val color = accentColor ?: getThemeAccentColor()
-        
-        // Adapt Colors based on background luminance
-        val contentColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getTextColorForAccent(color)
-        val secondaryColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getSecondaryTextColorForAccent(color)
-        
-        // 1. Tint Background & Setup System Bars (using new Helper)
-        // Access dialog to set window properties
+        val isLight = com.diez.stoiclauncher.presentation.util.ColorHelper.isLightColor(color)
+        val sheetColor = if (isLight) android.graphics.Color.parseColor("#1A1A1A") else color
+        val contentColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getTextColorForAccent(sheetColor)
+        val secondaryColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getSecondaryTextColorForAccent(sheetColor)
+
         val dialog = dialog
         if (dialog != null) {
             val bgContainer = view.findViewById<android.view.View>(R.id.bottom_sheet_root)
             com.diez.stoiclauncher.presentation.util.UiHelper.setupBottomSheetColor(dialog, bgContainer, color)
-        } else {
-             // Fallback if dialog is null? Should not happen in onViewCreated usually if shown.
-             // But just in case, manual tint
-             val bgContainer = view.findViewById<android.view.View>(R.id.bottom_sheet_root)
-             val bgDrawable = androidx.core.content.ContextCompat.getDrawable(requireContext(), R.drawable.shape_bottom_sheet)?.mutate()
-             androidx.core.graphics.drawable.DrawableCompat.setTint(bgDrawable!!, color)
-             bgContainer?.background = bgDrawable
         }
-        
-        // 2. Tint Title
+
         val tvTitle = view.findViewById<TextView>(R.id.tv_title)
         tvTitle.text = title
         tvTitle.setTextColor(contentColor)
-        
-        // 3. Setup List with Colors
+
         val rvOptions = view.findViewById<RecyclerView>(R.id.rv_options)
         rvOptions.layoutManager = LinearLayoutManager(requireContext())
         rvOptions.adapter = MenuAdapter(options, contentColor) { index ->

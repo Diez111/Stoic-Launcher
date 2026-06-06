@@ -30,6 +30,7 @@
     <item package="com.openai.chatgpt" drawable="openai_chatgpt" />
     <item package="com.anthropic.claude" drawable="openai_chatgpt" />
     <item package="com.google.android.apps.bard" drawable="openai_chatgpt" />
+    <item package="com.deepseek.chat" drawable="openai_chatgpt" />
     <item package="com.google.android.googlequicksearchbox" drawable="google" />
     <item package="com.google.android.gm" drawable="google_mail" />
     <item package="com.google.android.calendar" drawable="calendar_google_31" />

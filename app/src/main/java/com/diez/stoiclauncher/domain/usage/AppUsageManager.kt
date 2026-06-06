@@ -86,18 +86,24 @@ class AppUsageManager(
         return stats?.totalTimeInForeground ?: 0L
     }
     
+    fun getUsedMinutesToday(packageName: String): Int {
+        val millis = getDailyUsage(packageName)
+        return (millis / 1000 / 60).toInt()
+    }
+
     suspend fun getRemainingTime(app: AppModel): String = withContext(Dispatchers.IO) {
         if (isExempt(app)) return@withContext "∞"
-        
         val limitMinutes = settingsRepository.getAppUsageLimit(app.packageName).first()
         if (limitMinutes <= 0) return@withContext "∞"
-        
-        val usageMillis = getDailyUsage(app.packageName)
-        val limitMillis = limitMinutes * 60 * 1000L
-        val remainingMillis = (limitMillis - usageMillis).coerceAtLeast(0)
-        
-        val minutes = (remainingMillis / 1000 / 60).toInt()
-        "${minutes}m"
+        val remaining = limitMinutes - getUsedMinutesToday(app.packageName)
+        "${remaining.coerceAtLeast(0)}m"
+    }
+
+    suspend fun getRemainingMinutes(app: AppModel): Int = withContext(Dispatchers.IO) {
+        if (isExempt(app)) return@withContext Int.MAX_VALUE
+        val limitMinutes = settingsRepository.getAppUsageLimit(app.packageName).first()
+        if (limitMinutes <= 0) return@withContext Int.MAX_VALUE
+        (limitMinutes - getUsedMinutesToday(app.packageName)).coerceAtLeast(0)
     }
 
     companion object {

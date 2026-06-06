@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="36dp"
+    android:layout_height="36dp"
+    android:gravity="center">
+
+    <ImageView
+        android:id="@+id/iv_dock_icon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:scaleType="centerInside"
+        android:background="?attr/selectableItemBackgroundBorderless" />
+
+</FrameLayout>

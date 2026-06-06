@@ -9,12 +9,16 @@ import com.diez.stoiclauncher.domain.repository.SettingsRepository
 
 class AppContainer(private val context: Context) {
 
+    val appPreferencesRepository: AppPreferencesRepository by lazy {
+        AppPreferencesRepository(context)
+    }
+
     val iconPackManager: com.diez.stoiclauncher.domain.util.IconPackManager by lazy {
         com.diez.stoiclauncher.domain.util.IconPackManager(context)
     }
 
     val appRepository: AppRepository by lazy {
-        AppRepositoryImpl(context, AppPreferencesRepository(context), iconPackManager)
+        AppRepositoryImpl(context, appPreferencesRepository, iconPackManager)
     }
     
     val settingsRepository: SettingsRepository by lazy {
