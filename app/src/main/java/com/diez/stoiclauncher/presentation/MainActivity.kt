@@ -35,13 +35,6 @@ import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionListener {
 
-    companion object {
-        val sharedViewPool = RecyclerView.RecycledViewPool().apply {
-            setMaxRecycledViews(0, 60)
-            setMaxRecycledViews(1, 40)
-        }
-    }
-
     private lateinit var binding: ActivityMainBinding
     private lateinit var viewModel: HomeViewModel
     lateinit var widgetController: com.diez.stoiclauncher.presentation.controller.WidgetController
@@ -218,7 +211,6 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
         rvDock.adapter = dockAdapter
         rvDock.setHasFixedSize(true)
         rvDock.itemAnimator = null
-        rvDock.setRecycledViewPool(sharedViewPool)
 
         val itemTouchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
             ItemTouchHelper.LEFT or ItemTouchHelper.RIGHT or ItemTouchHelper.START or ItemTouchHelper.END, 0

@@ -71,7 +71,6 @@ class HomeFragment : Fragment() {
         rvBubbles.adapter = bubbleAdapter
         rvBubbles.setHasFixedSize(true)
         rvBubbles.itemAnimator = null
-        rvBubbles.setRecycledViewPool(com.diez.stoiclauncher.presentation.MainActivity.sharedViewPool)
         rvBubbles.isNestedScrollingEnabled = false
         rvBubbles.overScrollMode = View.OVER_SCROLL_NEVER
         rvBubbles.setLayerType(View.LAYER_TYPE_HARDWARE, null)
