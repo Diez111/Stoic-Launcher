@@ -1,6 +1,7 @@
 package com.diez.stoiclauncher.presentation.manager
 
 import android.app.Activity
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.PixelFormat
 import android.util.Log
@@ -8,92 +9,65 @@ import android.view.View
 import android.view.WindowManager
 import androidx.core.view.WindowCompat
 import com.diez.stoiclauncher.presentation.util.ColorHelper
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class WallpaperSettingsManager(private val activity: Activity) {
 
     suspend fun applyWallpaperSettings(isWallpaperEnabled: Boolean, accentColor: Int, wallpaperUri: String?) {
         val window = activity.window
-        
-        // Ensure Window is Translucent for proper wallpaper rendering
         window.setFormat(PixelFormat.TRANSLUCENT)
         window.navigationBarColor = Color.TRANSPARENT
         window.statusBarColor = Color.TRANSPARENT
 
         var isLightKey = false
+        if (isWallpaperEnabled) handleWallpaperMode(window, wallpaperUri) { isLightKey = it }
+        else handleSolidColorMode(window, accentColor) { isLightKey = it }
 
-        if (isWallpaperEnabled) {
-            handleWallpaperMode(window, wallpaperUri) { isLight ->
-                isLightKey = isLight
-            }
-        } else {
-            handleSolidColorMode(window, accentColor) { isLight ->
-                isLightKey = isLight
-            }
-        }
-
-        // Apply Light/Dark status bar icons
         WindowCompat.getInsetsController(window, window.decorView).apply {
             isAppearanceLightStatusBars = isLightKey
             isAppearanceLightNavigationBars = isLightKey
         }
     }
 
-    private suspend fun handleWallpaperMode(window: android.view.Window, wallpaperUri: String?, onLightCalculated: (Boolean) -> Unit) {
+    private suspend fun handleWallpaperMode(window: android.view.Window, wallpaperUri: String?, onLight: (Boolean) -> Unit) {
         if (wallpaperUri != null) {
             try {
                 val uri = android.net.Uri.parse(wallpaperUri)
-                val inputStream = activity.contentResolver.openInputStream(uri)
-                val bitmap = android.graphics.BitmapFactory.decodeStream(inputStream)
-                
+                val bitmap = withContext(Dispatchers.IO) {
+                    activity.contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) }
+                }
                 if (bitmap != null) {
-                    // Custom Wallpaper found
                     val imageView = activity.findViewById<android.widget.ImageView>(com.diez.stoiclauncher.R.id.iv_wallpaper)
                     imageView.visibility = View.VISIBLE
                     imageView.setImageBitmap(bitmap)
-                    
                     val isLight = ColorHelper.isBitmapLight(bitmap)
-                    onLightCalculated(isLight)
-
-                    // Opaque window for custom image (performance optimization & prevents ghosting)
+                    onLight(isLight)
                     window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
                     window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.BLACK))
-                } else {
-                    applySystemWallpaper(window, onLightCalculated)
-                }
+                } else applySystemWallpaper(window, onLight)
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading custom wallpaper", e)
-                applySystemWallpaper(window, onLightCalculated)
+                applySystemWallpaper(window, onLight)
             }
-        } else {
-            applySystemWallpaper(window, onLightCalculated)
-        }
+        } else applySystemWallpaper(window, onLight)
     }
 
-    private fun applySystemWallpaper(window: android.view.Window, onLightCalculated: (Boolean) -> Unit) {
+    private fun applySystemWallpaper(window: android.view.Window, onLight: (Boolean) -> Unit) {
         val imageView = activity.findViewById<android.widget.ImageView>(com.diez.stoiclauncher.R.id.iv_wallpaper)
         imageView.visibility = View.GONE
-        
-        onLightCalculated(false) // Assume dark for system wallpaper to ensure white text visibility
-
-        // System Wallpaper Flag
+        onLight(false)
         window.addFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
-        
-        // AGGRESSIVE CLEARING
         window.setBackgroundDrawable(null)
         window.decorView.background = null
     }
 
-    companion object {
-        private const val TAG = "WallpaperManager"
-    }
+    companion object { private const val TAG = "WallpaperManager" }
 
-    private suspend fun handleSolidColorMode(window: android.view.Window, accentColor: Int, onLightCalculated: (Boolean) -> Unit) {
-        val imageView = activity.findViewById<android.widget.ImageView>(com.diez.stoiclauncher.R.id.iv_wallpaper)
-        imageView.visibility = View.GONE
-
+    private suspend fun handleSolidColorMode(window: android.view.Window, accentColor: Int, onLight: (Boolean) -> Unit) {
+        activity.findViewById<android.widget.ImageView>(com.diez.stoiclauncher.R.id.iv_wallpaper).visibility = View.GONE
         val isLight = ColorHelper.isLightColor(accentColor)
-        onLightCalculated(isLight)
-
+        onLight(isLight)
         window.clearFlags(WindowManager.LayoutParams.FLAG_SHOW_WALLPAPER)
         window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(accentColor))
         window.navigationBarColor = accentColor

@@ -44,7 +44,7 @@ class DrawerFragment : Fragment() {
                  if (app.isGroup) {
                      showGroupDialog(app)
                  } else {
-                     com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app)
+                      lifecycleScope.launch { com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app) }
                  }
             },
             onAppLongClick = { app ->
@@ -55,7 +55,7 @@ class DrawerFragment : Fragment() {
         rvAllApps.layoutManager = LinearLayoutManager(requireContext())
         rvAllApps.adapter = adapter
         rvAllApps.setHasFixedSize(true)
-        rvAllApps.setItemViewCacheSize(30)
+        rvAllApps.setItemViewCacheSize(10)
         rvAllApps.itemAnimator = null
         
         etSearch.addTextChangedListener(object : TextWatcher {
@@ -173,7 +173,7 @@ class DrawerFragment : Fragment() {
         rvApps.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 4)
         val gridAdapter = com.diez.stoiclauncher.presentation.home.AppAdapter(
             onAppClick = { app ->
-                com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app)
+                lifecycleScope.launch { com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app) }
                 dialog.dismiss()
             },
             onAppLongClick = { false },

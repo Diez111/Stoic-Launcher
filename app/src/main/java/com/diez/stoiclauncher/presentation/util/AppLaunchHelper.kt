@@ -7,28 +7,24 @@ import android.util.Log
 import android.widget.Toast
 import com.diez.stoiclauncher.domain.model.AppModel
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 
 object AppLaunchHelper {
 
     private const val TAG = "AppLaunchHelper"
 
-    fun launchApp(context: Context, app: AppModel) {
+    suspend fun launchApp(context: Context, app: AppModel) = withContext(Dispatchers.IO) {
         try {
             val appContext = context.applicationContext
             if (appContext is com.diez.stoiclauncher.StoicApplication) {
                 val usageManager = appContext.container.appUsageManager
-
-                val allowed = runBlocking(Dispatchers.IO) {
-                    usageManager.isAppRunAllowed(app)
-                }
-                if (!allowed) {
-                    val remaining = runBlocking(Dispatchers.IO) {
-                        usageManager.getRemainingTime(app)
-                    }
+                if (!usageManager.isAppRunAllowed(app)) {
+                    val remaining = usageManager.getRemainingTime(app)
                     if (remaining != "∞") {
-                        Toast.makeText(context, "Tiempo límite alcanzado. Descansa un poco.", Toast.LENGTH_LONG).show()
-                        return
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(context, "Tiempo límite alcanzado. Descansa un poco.", Toast.LENGTH_LONG).show()
+                        }
+                        return@withContext
                     }
                 }
             }
@@ -37,14 +33,18 @@ object AppLaunchHelper {
             val user = app.user ?: Process.myUserHandle()
             val activities = launcherApps.getActivityList(app.packageName, user)
 
-            if (activities.isNotEmpty()) {
-                launcherApps.startMainActivity(activities[0].componentName, user, null, null)
-            } else {
-                Toast.makeText(context, "No se puede abrir la app", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.Main) {
+                if (activities.isNotEmpty()) {
+                    launcherApps.startMainActivity(activities[0].componentName, user, null, null)
+                } else {
+                    Toast.makeText(context, "No se puede abrir la app", Toast.LENGTH_SHORT).show()
+                }
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error launching app: ${app.packageName}", e)
-            Toast.makeText(context, "Error al abrir app", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.Main) {
+                Toast.makeText(context, "Error al abrir app", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }

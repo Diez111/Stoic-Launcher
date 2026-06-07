@@ -51,4 +51,9 @@ interface SettingsRepository {
     val customCategoryNames: Flow<Map<String, String>>
     suspend fun setCustomCategoryName(originalName: String, customName: String)
     suspend fun removeCustomCategoryName(originalName: String)
+
+    val volumeBoostEnabled: Flow<Boolean>
+    val volumeBoostLevel: Flow<Int>
+    suspend fun setVolumeBoostEnabled(enabled: Boolean)
+    suspend fun setVolumeBoostLevel(level: Int)
 }

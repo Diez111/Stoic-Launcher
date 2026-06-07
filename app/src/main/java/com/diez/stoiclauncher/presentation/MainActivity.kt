@@ -773,17 +773,12 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
                     holder.icon.setImageResource(android.R.drawable.sym_def_app_icon)
                 }
             }
-            holder.itemView.setOnClickListener { onAppClick(pkg) }
-            val detector = android.view.GestureDetector(holder.itemView.context,
-                object : android.view.GestureDetector.SimpleOnGestureListener() {
-                    override fun onDoubleTap(e: android.view.MotionEvent): Boolean {
-                        onAppDoubleTap(pkg)
-                        return true
-                    }
-                })
-            holder.itemView.setOnTouchListener { _, event ->
-                detector.onTouchEvent(event)
-                false
+            var lastTap = 0L
+            holder.itemView.setOnClickListener {
+                val now = System.currentTimeMillis()
+                if (now - lastTap < 350) onAppDoubleTap(pkg)
+                else onAppClick(pkg)
+                lastTap = now
             }
         }
 

@@ -43,6 +43,9 @@ class HomeFragment : Fragment() {
     private var maxDragDist = 0f
     private var pendingMenuGroup: CategoryGroup? = null
     private lateinit var itemTouchHelper: ItemTouchHelper
+    private val bubbleLayoutListener = android.view.ViewTreeObserver.OnGlobalLayoutListener {
+        if (::bubbleAdapter.isInitialized) bubbleAdapter.updateHeight(rvBubbles)
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         val view = inflater.inflate(R.layout.fragment_home, container, false)
@@ -173,9 +176,7 @@ class HomeFragment : Fragment() {
                 }
         }
 
-        rvBubbles.viewTreeObserver.addOnGlobalLayoutListener {
-            bubbleAdapter.updateHeight(rvBubbles)
-        }
+        rvBubbles.viewTreeObserver.addOnGlobalLayoutListener(bubbleLayoutListener)
 
         view.setOnLongClickListener {
             val options = mutableListOf(
@@ -245,7 +246,7 @@ class HomeFragment : Fragment() {
 
         rvApps.layoutManager = androidx.recyclerview.widget.GridLayoutManager(requireContext(), 4)
         val gridAdapter = com.diez.stoiclauncher.presentation.home.AppAdapter(
-            onAppClick = { app -> AppLaunchHelper.launchApp(requireContext(), app); dialog.dismiss() },
+            onAppClick = { app -> lifecycleScope.launch { AppLaunchHelper.launchApp(requireContext(), app) }; dialog.dismiss() },
             onAppLongClick = { app ->
                 val menuOptions = mutableListOf(
                     com.diez.stoiclauncher.presentation.common.MenuOption("Quitar del grupo"),
@@ -260,7 +261,7 @@ class HomeFragment : Fragment() {
                         0 -> { viewModel.setAppGroup(app, null); dialog.dismiss() }
                         1 -> { dialog.dismiss(); showMoveToGroupDialog(app) }
                         2 -> { showCreateGroupAndAddAppDialog(app); dialog.dismiss() }
-                        3 -> { AppLaunchHelper.launchApp(requireContext(), app); dialog.dismiss() }
+                        3 -> { lifecycleScope.launch { AppLaunchHelper.launchApp(requireContext(), app) }; dialog.dismiss() }
                     }
                 }.show(parentFragmentManager, "group_app_menu")
                 true
@@ -410,6 +411,11 @@ class HomeFragment : Fragment() {
             }
         }
     }
+
+    override fun onDestroyView() {
+        super.onDestroyView()
+        rvBubbles.viewTreeObserver.removeOnGlobalLayoutListener(bubbleLayoutListener)
+    }
 }
 
 data class CategoryGroup(
@@ -538,14 +544,7 @@ class BubbleAdapter(
         }
 
         itemHeight?.let { h.itemView.layoutParams.height = it }
-        val detector = android.view.GestureDetector(h.itemView.context,
-            object : android.view.GestureDetector.SimpleOnGestureListener() {
-                override fun onSingleTapUp(e: android.view.MotionEvent): Boolean {
-                    onBubbleClick(category)
-                    return true
-                }
-            })
-        h.itemView.setOnTouchListener { _, ev -> detector.onTouchEvent(ev); true }
+        h.itemView.setOnClickListener { onBubbleClick(category) }
     }
 
     override fun getItemCount(): Int = if (categories.isEmpty()) 1 else categories.size

@@ -130,7 +130,7 @@ class FavoritesFragment : Fragment() {
         
         val dialogAdapter = AppListAdapter(
             onAppClick = { app ->
-                com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app)
+                lifecycleScope.launch { com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app) }
                 dialog.dismiss()
             },
             onAppLongClick = { app ->
@@ -185,7 +185,7 @@ class FavoritesFragment : Fragment() {
          if (app.isGroup) {
              showGroupDialog(app)
          } else {
-             com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app)
+             lifecycleScope.launch { com.diez.stoiclauncher.presentation.util.AppLaunchHelper.launchApp(requireContext(), app) }
          }
     }
 }

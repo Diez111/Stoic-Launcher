@@ -19,6 +19,11 @@ class AppRepositoryImpl(
     private val iconPackManager: com.diez.stoiclauncher.domain.util.IconPackManager
 ) : AppRepository {
 
+    companion object {
+        private val ACCENT_STRIP = Regex("\\p{M}")
+        private val iconCache = android.util.LruCache<String, android.graphics.drawable.Drawable>(80)
+    }
+
     private val _installedApps = MutableStateFlow<List<AppModel>>(emptyList())
     private val packageManager: PackageManager = context.packageManager
     private val launcherApps = context.getSystemService(Context.LAUNCHER_APPS_SERVICE) as android.content.pm.LauncherApps
@@ -104,29 +109,28 @@ class AppRepositoryImpl(
     }
 
     private fun createAppModel(activity: android.content.pm.LauncherActivityInfo, user: android.os.UserHandle): AppModel {
-        var icon: android.graphics.drawable.Drawable? = null
-        if (iconPackManager.isStoicMinimal) {
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-                val originalIcon = activity.getIcon(0)
-                if (originalIcon is android.graphics.drawable.AdaptiveIconDrawable && originalIcon.monochrome != null) {
-                    icon = originalIcon.monochrome?.constantState?.newDrawable()?.mutate()?.apply {
-                        setTint(android.graphics.Color.WHITE)
+        val pkg = activity.applicationInfo.packageName
+        var icon = iconCache.get(pkg)
+        if (icon == null) {
+            if (iconPackManager.isStoicMinimal) {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                    val originalIcon = activity.getIcon(0)
+                    if (originalIcon is android.graphics.drawable.AdaptiveIconDrawable && originalIcon.monochrome != null) {
+                        icon = originalIcon.monochrome?.constantState?.newDrawable()?.mutate()?.apply {
+                            setTint(android.graphics.Color.WHITE)
+                        }
                     }
                 }
+                if (icon == null) icon = activity.getIcon(0)
+            } else {
+                icon = iconPackManager.getIcon(activity.componentName)
             }
             if (icon == null) icon = activity.getIcon(0)
-        } else {
-            icon = iconPackManager.getIcon(activity.componentName)
+            iconCache.put(pkg, icon)
         }
-        if (icon == null) icon = activity.getIcon(0)
 
-        return AppModel(
-            label = activity.label.toString(),
-            packageName = activity.applicationInfo.packageName,
-            icon = icon,
-            user = user,
-            category = com.diez.stoiclauncher.domain.util.AppCategorizer.getCategory(activity.applicationInfo)
-        )
+        return AppModel(label = activity.label.toString(), packageName = pkg, icon = icon, user = user,
+            category = com.diez.stoiclauncher.domain.util.AppCategorizer.getCategory(activity.applicationInfo))
     }
 
     private suspend fun incrementalRefresh(packageName: String) = withContext(Dispatchers.IO) {
@@ -153,12 +157,12 @@ class AppRepositoryImpl(
         if (normalizedQuery.isEmpty()) return apps
 
         val queryNoAccent = java.text.Normalizer.normalize(normalizedQuery, java.text.Normalizer.Form.NFD)
-            .replace(Regex("\\p{M}"), "")
+            .replace(ACCENT_STRIP, "")
 
         return apps.filter { app ->
             val label = app.label.lowercase()
             val labelNoAccent = java.text.Normalizer.normalize(label, java.text.Normalizer.Form.NFD)
-                .replace(Regex("\\p{M}"), "")
+                .replace(ACCENT_STRIP, "")
 
             if (labelNoAccent.contains(queryNoAccent)) return@filter true
             if (label.contains(normalizedQuery)) return@filter true

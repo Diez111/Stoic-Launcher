@@ -275,5 +275,22 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
         private const val KEY_GROUP_GRID_MODE = "group_grid_mode"
         private const val KEY_HIDDEN_CATEGORIES = "hidden_categories"
         private const val KEY_CUSTOM_CATEGORY_NAMES = "custom_category_names"
+        private const val KEY_VOLUME_BOOST_ENABLED = "volume_boost_enabled"
+        private const val KEY_VOLUME_BOOST_LEVEL = "volume_boost_level"
+    }
+
+    private val _volumeBoostEnabled = MutableStateFlow(prefs.getBoolean(KEY_VOLUME_BOOST_ENABLED, false))
+    override val volumeBoostEnabled: Flow<Boolean> = _volumeBoostEnabled
+    private val _volumeBoostLevel = MutableStateFlow(prefs.getInt(KEY_VOLUME_BOOST_LEVEL, 100))
+    override val volumeBoostLevel: Flow<Int> = _volumeBoostLevel
+
+    override suspend fun setVolumeBoostEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_VOLUME_BOOST_ENABLED, enabled).apply()
+        _volumeBoostEnabled.value = enabled
+    }
+
+    override suspend fun setVolumeBoostLevel(level: Int) {
+        prefs.edit().putInt(KEY_VOLUME_BOOST_LEVEL, level).apply()
+        _volumeBoostLevel.value = level
     }
 }
