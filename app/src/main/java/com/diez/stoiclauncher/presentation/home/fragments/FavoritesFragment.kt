@@ -69,12 +69,6 @@ class FavoritesFragment : Fragment() {
             }
         }
         
-        // Background Long Press
-        view.setOnLongClickListener {
-            showHomeOptions()
-            true
-        }
-        
         // Color Sync Flow - usar mapeo EXPLÍCITO de accentColor
         viewLifecycleOwner.lifecycleScope.launch {
             viewModel.accentColor.collectLatest { color ->
@@ -134,11 +128,6 @@ class FavoritesFragment : Fragment() {
                 dialog.dismiss()
             },
             onAppLongClick = { app ->
-                // "Remove from Group" option
-                val options = listOf(
-                    com.diez.stoiclauncher.presentation.common.MenuOption(getString(R.string.remove_from_group)) // Ensure string exists or use hardcoded for now? 
-                    // Let's use hardcoded "Quitar del Grupo" standard
-                )
                 val removeStr = "Quitar del Grupo"
                 val menuOptions = listOf(com.diez.stoiclauncher.presentation.common.MenuOption(removeStr))
                 

@@ -15,4 +15,5 @@ interface AppRepository {
     suspend fun setAppGroup(packageName: String, groupId: String?)
     suspend fun renameGroup(oldGroupId: String, newGroupId: String)
     suspend fun deleteGroup(groupId: String)
+    fun destroy()
 }

@@ -33,7 +33,6 @@ class BottomSheetMenu(
         val isLight = com.diez.stoiclauncher.presentation.util.ColorHelper.isLightColor(color)
         val sheetColor = if (isLight) android.graphics.Color.parseColor("#1A1A1A") else color
         val contentColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getTextColorForAccent(sheetColor)
-        val secondaryColor = com.diez.stoiclauncher.presentation.util.ColorHelper.getSecondaryTextColorForAccent(sheetColor)
 
         val dialog = dialog
         if (dialog != null) {
@@ -73,7 +72,7 @@ private class MenuAdapter(
         val tvLabel: TextView = view.findViewById(R.id.tv_option_label)
         
         init {
-            view.setOnClickListener { onClick(adapterPosition) }
+            view.setOnClickListener { onClick(bindingAdapterPosition) }
         }
     }
 

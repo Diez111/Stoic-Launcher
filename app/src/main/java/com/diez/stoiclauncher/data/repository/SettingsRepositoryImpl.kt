@@ -14,16 +14,17 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.json.Json
 
-class SettingsRepositoryImpl(context: Context) : SettingsRepository {
-
-    private val appPreferencesRepository = AppPreferencesRepository(context)
+class SettingsRepositoryImpl(
+    context: Context,
+    private val appPreferencesRepository: AppPreferencesRepository
+) : SettingsRepository {
     private val prefs: SharedPreferences = context.getSharedPreferences("stoic_prefs", Context.MODE_PRIVATE)
     private val _favoritesFlow = MutableStateFlow<Set<String>>(getFavoritesFromPrefs())
 
     override val favoritePackages: Flow<Set<String>> = _favoritesFlow
 
     override suspend fun toggleAppFavorite(packageName: String) {
-        val current = getFavoritesFromPrefs().toMutableSet()
+        val current = _favoritesFlow.value.toMutableSet()
         if (current.contains(packageName)) {
             current.remove(packageName)
         } else {
@@ -79,8 +80,7 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
     override val widgetConfigs: Flow<List<WidgetConfig>> = _widgetConfigsFlow
     
     override suspend fun saveWidgetConfig(config: WidgetConfig) {
-        val configs = getWidgetConfigsFromPrefs().toMutableList()
-        // Remove existing config for this widgetId
+        val configs = _widgetConfigsFlow.value.toMutableList()
         configs.removeIf { it.widgetId == config.widgetId }
         configs.add(config)
         
@@ -94,7 +94,7 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
     }
     
     override suspend fun deleteWidgetConfig(widgetId: Int) {
-        val configs = getWidgetConfigsFromPrefs().toMutableList()
+        val configs = _widgetConfigsFlow.value.toMutableList()
         configs.removeIf { it.widgetId == widgetId }
         
         val jsonString = Json.encodeToString(configs)
@@ -113,7 +113,7 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
     override val gestureMappingsFlow: Flow<Map<String, String>> = _gestureMappingsFlow
 
     override suspend fun setGestureMapping(trigger: String, action: String) {
-        val mappings = getGestureMappingsFromPrefs().toMutableMap()
+        val mappings = _gestureMappingsFlow.value.toMutableMap()
         if (action == "NONE" || action.isBlank()) {
             mappings.remove(trigger)
         } else {
@@ -216,7 +216,7 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
     override val hiddenCategories: Flow<Set<String>> = _hiddenCategoriesFlow
 
     override suspend fun toggleHiddenCategory(categoryName: String) {
-        val current = getHiddenCategoriesFromPrefs().toMutableSet()
+        val current = _hiddenCategoriesFlow.value.toMutableSet()
         if (current.contains(categoryName)) {
             current.remove(categoryName)
         } else {
@@ -234,7 +234,7 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
     override val customCategoryNames: Flow<Map<String, String>> = _customCategoryNamesFlow
 
     override suspend fun setCustomCategoryName(originalName: String, customName: String) {
-        val current = getCustomCategoryNamesFromPrefs().toMutableMap()
+        val current = _customCategoryNamesFlow.value.toMutableMap()
         current[originalName] = customName
         val jsonString = Json.encodeToString(current)
         prefs.edit().putString(KEY_CUSTOM_CATEGORY_NAMES, jsonString).apply()
@@ -242,7 +242,7 @@ class SettingsRepositoryImpl(context: Context) : SettingsRepository {
     }
 
     override suspend fun removeCustomCategoryName(originalName: String) {
-        val current = getCustomCategoryNamesFromPrefs().toMutableMap()
+        val current = _customCategoryNamesFlow.value.toMutableMap()
         current.remove(originalName)
         val jsonString = Json.encodeToString(current)
         prefs.edit().putString(KEY_CUSTOM_CATEGORY_NAMES, jsonString).apply()

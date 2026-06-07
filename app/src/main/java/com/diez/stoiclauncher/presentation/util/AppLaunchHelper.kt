@@ -5,6 +5,7 @@ import android.content.pm.LauncherApps
 import android.os.Process
 import android.util.Log
 import android.widget.Toast
+import com.diez.stoiclauncher.StoicApplication
 import com.diez.stoiclauncher.domain.model.AppModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -16,7 +17,7 @@ object AppLaunchHelper {
     suspend fun launchApp(context: Context, app: AppModel) = withContext(Dispatchers.IO) {
         try {
             val appContext = context.applicationContext
-            if (appContext is com.diez.stoiclauncher.StoicApplication) {
+            if (appContext is StoicApplication) {
                 val usageManager = appContext.container.appUsageManager
                 if (!usageManager.isAppRunAllowed(app)) {
                     val remaining = usageManager.getRemainingTime(app)

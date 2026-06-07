@@ -14,6 +14,8 @@ import com.diez.stoiclauncher.StoicApplication
 import com.diez.stoiclauncher.domain.model.WidgetConfig
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -23,11 +25,10 @@ class WidgetManager(
 ) {
     var isLightMode: Boolean = false
 
-    // Use Activity Context for proper widget lifecycle and updates
-    // Widgets need the Activity context to receive proper updates and callbacks
     private val appWidgetManager = AppWidgetManager.getInstance(activity)
     private val appWidgetHost = AppWidgetHost(activity, hostId)
     private val settingsRepository = (activity.application as StoicApplication).container.settingsRepository
+    private val widgetScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     
     // Callback to exit edit mode (Resize/Move) from Back Press
     private var exitEditModeCallback: (() -> Unit)? = null
@@ -59,14 +60,16 @@ class WidgetManager(
     fun stopListening() {
         appWidgetHost.stopListening()
     }
+
+    fun destroy() {
+        widgetScope.cancel()
+    }
     
     fun deleteWidgetId(appWidgetId: Int) {
         appWidgetHost.deleteAppWidgetId(appWidgetId)
-        // Also delete from persistence
-        CoroutineScope(Dispatchers.IO).launch {
+        widgetScope.launch(Dispatchers.IO) {
             try {
                 settingsRepository.deleteWidgetConfig(appWidgetId)
-                android.util.Log.d("WidgetManager", "Widget config deleted from persistence: $appWidgetId")
             } catch (e: Exception) {
                 Log.e(TAG, "Error deleting widget config", e)
             }
@@ -74,14 +77,14 @@ class WidgetManager(
     }
     
     fun removeAllWidgets(container: ViewGroup? = null) {
-        CoroutineScope(Dispatchers.IO).launch {
+        widgetScope.launch(Dispatchers.IO) {
             val configs = settingsRepository.getAllWidgetConfigs()
             configs.forEach { config ->
                 appWidgetHost.deleteAppWidgetId(config.widgetId)
             }
             settingsRepository.clearAllWidgetConfigs()
             
-            CoroutineScope(Dispatchers.Main).launch {
+            withContext(Dispatchers.Main) {
                 container?.removeAllViews()
                 android.widget.Toast.makeText(activity, "Todos los widgets eliminados", android.widget.Toast.LENGTH_SHORT).show()
             }
@@ -89,23 +92,16 @@ class WidgetManager(
     }
 
     fun refreshWidgetThemes(isLight: Boolean, container: ViewGroup) {
-        android.util.Log.d("WidgetManager", "refreshWidgetThemes called. isLight=$isLight, previous isLightMode=$isLightMode")
-        
-        // Si el modo cambió, necesitamos re-renderizar TODOS los widgets
         if (this.isLightMode != isLight) {
-            android.util.Log.d("WidgetManager", "Mode changed! Re-rendering all widgets...")
             this.isLightMode = isLight
             
-            // Forzar re-renderización completa de todos los widgets
-            CoroutineScope(Dispatchers.IO).launch {
+            widgetScope.launch(Dispatchers.IO) {
                 val configs = settingsRepository.getAllWidgetConfigs()
                 withContext(Dispatchers.Main) {
                     restoreWidgets(container, configs)
                 }
             }
         } else {
-            // Solo actualizar colores del wrapper si el modo no cambió
-            android.util.Log.d("WidgetManager", "Mode unchanged. Only updating wrapper colors.")
             val density = activity.resources.displayMetrics.density
             val wrapperBgColor = if (isLightMode) 0x0A000000 else 0x0AFFFFFF
             
@@ -136,31 +132,17 @@ class WidgetManager(
     
     
     fun showCustomWidgetPicker(onWidgetSelected: (AppWidgetProviderInfo, Int) -> Unit) {
-        android.util.Log.d("WidgetManager", "========== showCustomWidgetPicker CALLED ==========")
         val widgetId = allocateWidgetId()
-        android.util.Log.d("WidgetManager", "Allocated widget ID: $widgetId")
         
         // Get ALL installed widgets - don't filter by className to avoid missing widgets
         val installedWidgets = appWidgetManager.installedProviders
-        
-        android.util.Log.d("WidgetManager", "Total widgets found: ${installedWidgets.size}")
         
         // Sort alphabetically by label for better UX
         val sortedWidgets = installedWidgets.sortedBy { 
             it.loadLabel(activity.packageManager)?.toString() ?: ""
         }
         
-        android.util.Log.d("WidgetManager", "Sorted widgets: ${sortedWidgets.size}")
-        android.util.Log.d("WidgetManager", "========== WIDGET LIST START ==========")
-        sortedWidgets.forEachIndexed { index, widget ->
-            val label = widget.loadLabel(activity.packageManager)?.toString() ?: "NO LABEL"
-            val provider = widget.provider
-            android.util.Log.d("WidgetManager", "[$index] $label - $provider")
-        }
-        android.util.Log.d("WidgetManager", "========== WIDGET LIST END ==========")
-        
         // Create bottom sheet dialog
-        android.util.Log.d("WidgetManager", "Creating bottom sheet dialog...")
         val dialog = com.google.android.material.bottomsheet.BottomSheetDialog(activity)
         val view = activity.layoutInflater.inflate(com.diez.stoiclauncher.R.layout.dialog_widget_picker, null)
         dialog.setContentView(view)
@@ -187,20 +169,14 @@ class WidgetManager(
         val searchView = view.findViewById<androidx.appcompat.widget.SearchView>(com.diez.stoiclauncher.R.id.search_widgets)
         val recyclerView = view.findViewById<androidx.recyclerview.widget.RecyclerView>(com.diez.stoiclauncher.R.id.rv_widgets)
         
-        android.util.Log.d("WidgetManager", "Setting up RecyclerView...")
         recyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(activity)
         recyclerView.setHasFixedSize(true)
         
-        android.util.Log.d("WidgetManager", "Creating adapter with ${sortedWidgets.size} widgets...")
         val adapter = com.diez.stoiclauncher.presentation.widget.WidgetPickerAdapter(activity, sortedWidgets.toMutableList()) { selectedWidget ->
-            android.util.Log.d("WidgetManager", "Widget selected: ${selectedWidget.loadLabel(activity.packageManager)} - ${selectedWidget.provider}")
             dialog.dismiss()
-            android.util.Log.d("WidgetManager", "Calling onWidgetSelected callback...")
             onWidgetSelected(selectedWidget, widgetId)
-            android.util.Log.d("WidgetManager", "onWidgetSelected callback completed")
         }
         recyclerView.adapter = adapter
-        android.util.Log.d("WidgetManager", "Adapter set on RecyclerView")
         
         // SearchView filter
         searchView.setOnQueryTextListener(object : androidx.appcompat.widget.SearchView.OnQueryTextListener {
@@ -265,7 +241,6 @@ class WidgetManager(
     }
 
     fun restoreWidgets(container: ViewGroup, configs: List<WidgetConfig>) {
-        android.util.Log.d("WidgetManager", "Restoring ${configs.size} widgets...")
         container.removeAllViews()
         
         configs.forEach { config ->
@@ -275,7 +250,7 @@ class WidgetManager(
                 
                 val info = appWidgetManager.getAppWidgetInfo(config.widgetId)
                 if (info == null) {
-                    android.util.Log.e("WidgetManager", "Widget ${config.widgetId} info missing. Skipping restore (not deleting).")
+                    Log.w(TAG, "Widget ${config.widgetId} info missing. Skipping restore.")
                     return@forEach
                 }
                 
@@ -311,8 +286,8 @@ class WidgetManager(
         val minHeightPx = (120 * density).toInt()
         
         val finalHeight = config?.height ?: run {
-             val widgetMinHeightDp = info.minHeight / density.toInt()
-             if (widgetMinHeightDp in 150..600) (widgetMinHeightDp * density).toInt() else defaultHeightPx
+             val widgetMinHeightDp = info.minHeight / density
+             if (widgetMinHeightDp in 150f..600f) (widgetMinHeightDp * density).toInt() else defaultHeightPx
         }
         val finalWidth = config?.width ?: ViewGroup.LayoutParams.MATCH_PARENT
         
@@ -833,7 +808,7 @@ class WidgetManager(
     }
     
     private fun saveWidgetConfig(widgetId: Int, info: AppWidgetProviderInfo, wrapper: android.widget.FrameLayout) {
-        CoroutineScope(Dispatchers.IO).launch {
+        widgetScope.launch(Dispatchers.IO) {
             try {
                 val config = WidgetConfig(
                     widgetId = widgetId,
@@ -842,7 +817,7 @@ class WidgetManager(
                     y = wrapper.y,
                     width = wrapper.width,
                     height = wrapper.height,
-                    page = 0 // Updated to reflect correct screen index (Screen 0)
+                    page = 0
                 )
                 settingsRepository.saveWidgetConfig(config)
             } catch (e: Exception) {

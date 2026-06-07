@@ -1,8 +1,6 @@
 package com.diez.stoiclauncher.presentation.services
 
 import android.accessibilityservice.AccessibilityService
-import android.content.Context
-import android.hardware.camera2.CameraManager
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -19,7 +17,6 @@ import kotlinx.coroutines.launch
 class StoicAccessibilityService : AccessibilityService() {
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-    private var isFlashlightOn = false
     private val handler = Handler(Looper.getMainLooper())
 
     private var lastKeyDownTime = 0L
@@ -89,7 +86,7 @@ class StoicAccessibilityService : AccessibilityService() {
                 .setTitle("Límite alcanzado")
                 .setMessage("$label\n\nHas usado $usedMin min de $limitMin min disponibles hoy. Volvé mañana o ajustá el límite en Stoic Launcher.")
                 .setPositiveButton("Ajustar límite") { _, _ ->
-                    val intent = packageManager.getLaunchIntentForPackage(packageName)
+                    val intent = packageManager.getLaunchIntentForPackage(pkg)
                     intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
                     startActivity(intent)
                 }
@@ -116,7 +113,7 @@ class StoicAccessibilityService : AccessibilityService() {
             val mappings = settingsRepository.gestureMappingsFlow.first()
             val action = mappings[trigger]
 
-            Handler(Looper.getMainLooper()).post {
+            handler.post {
                 executeAction(action)
             }
         }
@@ -131,14 +128,8 @@ class StoicAccessibilityService : AccessibilityService() {
     }
 
     private fun toggleFlashlight() {
-        try {
-            val cameraManager = getSystemService(Context.CAMERA_SERVICE) as CameraManager
-            val cameraId = cameraManager.cameraIdList[0]
-            isFlashlightOn = !isFlashlightOn
-            cameraManager.setTorchMode(cameraId, isFlashlightOn)
-        } catch (e: Exception) {
-            Log.e(TAG, "Error toggling flashlight", e)
-        }
+        val appContainer = (application as StoicApplication).container
+        appContainer.flashlightManager.toggle()
     }
 
     private fun expandNotifications() {
@@ -146,7 +137,7 @@ class StoicAccessibilityService : AccessibilityService() {
     }
 
     private fun launchSearch() {
-        val intent = packageManager.getLaunchIntentForPackage(packageName)
+        val intent = packageManager.getLaunchIntentForPackage("com.diez.stoiclauncher")
         intent?.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
         intent?.putExtra("open_search", true)
         startActivity(intent)

@@ -88,14 +88,9 @@ class DrawerFragment : Fragment() {
                      0x1A000000.toInt() 
                  }
                  
-                 // Actualizar color manualmente iterando vistas visibles para evitar duplicación
-                 // NO usar notifyDataSetChanged()
-                 val recyclerView = rvAllApps
-                 if (recyclerView != null) {
-                     adapter.updateTextColor(contentColor, recyclerView)
-                 } else {
-                     adapter.textColor = contentColor
-                 }
+                  // Actualizar color manualmente iterando vistas visibles para evitar duplicación
+                  // NO usar notifyDataSetChanged()
+                  adapter.updateTextColor(contentColor, rvAllApps)
                  
                  etSearch.setTextColor(contentColor)
                  etSearch.setHintTextColor(secondaryColor)

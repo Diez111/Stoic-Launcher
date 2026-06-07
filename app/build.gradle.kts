@@ -78,7 +78,6 @@ dependencies {
     androidTestImplementation(libs.androidx.espresso.core)
 
     implementation("androidx.datastore:datastore-preferences:1.0.0")
-    implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.viewpager2:viewpager2:1.0.0")
     implementation("androidx.fragment:fragment-ktx:1.6.2")
     implementation(libs.kotlinx.serialization.json)

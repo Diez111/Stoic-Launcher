@@ -22,13 +22,22 @@ class AppUsageManager(
     private val exemptGroups = setOf("Trabajo", "Estudio", "Inversión", "Productividad", "Finance", "Work", "Study")
     
     // Check if permission is granted
+    @Suppress("DEPRECATION")
     fun hasPermission(): Boolean {
         val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as android.app.AppOpsManager
-        val mode = appOps.checkOpNoThrow(
-            android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
-            android.os.Process.myUid(),
-            context.packageName
-        )
+        val mode = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+            appOps.unsafeCheckOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                context.packageName
+            )
+        } else {
+            appOps.checkOpNoThrow(
+                android.app.AppOpsManager.OPSTR_GET_USAGE_STATS,
+                android.os.Process.myUid(),
+                context.packageName
+            )
+        }
         return mode == android.app.AppOpsManager.MODE_ALLOWED
     }
 
@@ -88,7 +97,7 @@ class AppUsageManager(
     
     fun getUsedMinutesToday(packageName: String): Int {
         val millis = getDailyUsage(packageName)
-        return (millis / 1000 / 60).toInt()
+        return kotlin.math.ceil(millis / 1000.0 / 60.0).toInt()
     }
 
     suspend fun getRemainingTime(app: AppModel): String = withContext(Dispatchers.IO) {

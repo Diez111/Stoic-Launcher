@@ -5,7 +5,7 @@ import androidx.core.graphics.ColorUtils
 
 object ColorHelper {
 
-    private const val LUMINANCE_THRESHOLD = 0.179
+    private const val LUMINANCE_THRESHOLD = 0.5
 
     fun getTextColorForAccent(accentColor: Int, isWallpaperEnabled: Boolean = false): Int {
         if (isWallpaperEnabled) return Color.WHITE

@@ -57,13 +57,13 @@ class AppListAdapter(
 
         init {
             itemView.setOnClickListener {
-                val position = adapterPosition
+                val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onAppClick(getItem(position))
                 }
             }
             itemView.setOnLongClickListener {
-                val position = adapterPosition
+                val position = bindingAdapterPosition
                 if (position != RecyclerView.NO_POSITION) {
                     onAppLongClick(getItem(position))
                 } else {

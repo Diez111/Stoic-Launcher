@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import com.diez.stoiclauncher.domain.model.AppModel
 import com.diez.stoiclauncher.domain.repository.AppRepository
+import com.diez.stoiclauncher.domain.util.AppCategorizer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -22,6 +23,8 @@ class AppRepositoryImpl(
     companion object {
         private val ACCENT_STRIP = Regex("\\p{M}")
         private val iconCache = android.util.LruCache<String, android.graphics.drawable.Drawable>(80)
+        private val normalizedLabelCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+        private const val MAX_LABEL_CACHE_SIZE = 500
     }
 
     private val _installedApps = MutableStateFlow<List<AppModel>>(emptyList())
@@ -53,12 +56,13 @@ class AppRepositoryImpl(
         callbackScope.launch {
             preferencesRepository.iconPackPackageFlow.collect { pack ->
                 iconPackManager.setIconPack(pack)
+                iconCache.evictAll()
                 refreshApps()
             }
         }
     }
 
-    fun destroy() {
+    override fun destroy() {
         launcherApps.unregisterCallback(callback)
         callbackScope.cancel()
     }
@@ -123,14 +127,15 @@ class AppRepositoryImpl(
                 }
                 if (icon == null) icon = activity.getIcon(0)
             } else {
-                icon = iconPackManager.getIcon(activity.componentName)
+                val component = activity.componentName
+                icon = if (component != null) iconPackManager.getIcon(component) else activity.getIcon(0)
             }
             if (icon == null) icon = activity.getIcon(0)
             iconCache.put(pkg, icon)
         }
 
         return AppModel(label = activity.label.toString(), packageName = pkg, icon = icon, user = user,
-            category = com.diez.stoiclauncher.domain.util.AppCategorizer.getCategory(activity.applicationInfo))
+            category = AppCategorizer.getCategory(activity.applicationInfo))
     }
 
     private suspend fun incrementalRefresh(packageName: String) = withContext(Dispatchers.IO) {
@@ -156,13 +161,11 @@ class AppRepositoryImpl(
         val normalizedQuery = query.trim().lowercase()
         if (normalizedQuery.isEmpty()) return apps
 
-        val queryNoAccent = java.text.Normalizer.normalize(normalizedQuery, java.text.Normalizer.Form.NFD)
-            .replace(ACCENT_STRIP, "")
+        val queryNoAccent = normalizeString(normalizedQuery)
 
         return apps.filter { app ->
             val label = app.label.lowercase()
-            val labelNoAccent = java.text.Normalizer.normalize(label, java.text.Normalizer.Form.NFD)
-                .replace(ACCENT_STRIP, "")
+            val labelNoAccent = getNormalizedLabel(label)
 
             if (labelNoAccent.contains(queryNoAccent)) return@filter true
             if (label.contains(normalizedQuery)) return@filter true
@@ -179,6 +182,18 @@ class AppRepositoryImpl(
 
             false
         }
+    }
+
+    private fun normalizeString(input: String): String {
+        return java.text.Normalizer.normalize(input, java.text.Normalizer.Form.NFD)
+            .replace(ACCENT_STRIP, "")
+    }
+
+    private fun getNormalizedLabel(label: String): String {
+        if (normalizedLabelCache.size > MAX_LABEL_CACHE_SIZE) {
+            normalizedLabelCache.clear()
+        }
+        return normalizedLabelCache.getOrPut(label) { normalizeString(label) }
     }
     
     private fun levenshtein(lhs: CharSequence, rhs: CharSequence): Int {

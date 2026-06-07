@@ -262,7 +262,7 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
                 viewModel.accentColor, viewModel.isWallpaperEnabled
             ) { color, isWallpaper -> color to isWallpaper }
                 .collectLatest { (color, isWallpaper) ->
-                    val contentColor = ColorHelper.getTextColorForAccent(color as Int, isWallpaper as Boolean)
+                    val contentColor = ColorHelper.getTextColorForAccent(color, isWallpaper)
                     val tint = android.content.res.ColorStateList.valueOf(contentColor)
                     btnAdd.imageTintList = tint
                 }
@@ -464,6 +464,11 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
 
     override fun onStart() { super.onStart(); widgetController.onStart() }
     override fun onStop() { super.onStop(); widgetController.onStop() }
+    override fun onDestroy() {
+        super.onDestroy()
+        widgetController.destroy()
+        (application as StoicApplication).container.appRepository.destroy()
+    }
 
     private fun isDefaultLauncher(): Boolean {
         val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_HOME) }
@@ -522,7 +527,9 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
                             val svc = getSystemService("statusbar")
                             val cls = Class.forName("android.app.StatusBarManager")
                             cls.getMethod("expandNotificationsPanel").invoke(svc)
-                        } catch (e: Exception) {}
+                        } catch (e: Exception) {
+                            android.util.Log.w("MainActivity", "Could not expand notifications panel", e)
+                        }
                     }
                     "FLASHLIGHT" -> toggleFlashlight()
                 }
@@ -530,14 +537,8 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
         }
     }
 
-    private var isFlashlightOn = false
     private fun toggleFlashlight() {
-        try {
-            val cm = getSystemService(android.content.Context.CAMERA_SERVICE) as android.hardware.camera2.CameraManager
-            val id = cm.cameraIdList[0]
-            isFlashlightOn = !isFlashlightOn
-            cm.setTorchMode(id, isFlashlightOn)
-        } catch (e: Exception) {}
+        (application as StoicApplication).container.flashlightManager.toggle()
     }
 
     private fun showGroupDialog(app: AppModel) {
@@ -732,6 +733,7 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
 
         inner class VH(view: View) : RecyclerView.ViewHolder(view) {
             val icon: ImageView = view.findViewById(R.id.iv_dock_icon)
+            var lastTap = 0L
         }
 
         fun submitList(list: List<String>) {
@@ -773,12 +775,11 @@ class MainActivity : AppCompatActivity(), WidgetContainerProvider, AppActionList
                     holder.icon.setImageResource(android.R.drawable.sym_def_app_icon)
                 }
             }
-            var lastTap = 0L
             holder.itemView.setOnClickListener {
                 val now = System.currentTimeMillis()
-                if (now - lastTap < 350) onAppDoubleTap(pkg)
+                if (now - holder.lastTap < 350) onAppDoubleTap(pkg)
                 else onAppClick(pkg)
-                lastTap = now
+                holder.lastTap = now
             }
         }
 

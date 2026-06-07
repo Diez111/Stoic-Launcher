@@ -39,7 +39,9 @@ class StoicCalendarProvider : AppWidgetProvider() {
         
         // Month Title
         val dateFormat = SimpleDateFormat("MMMM", Locale.getDefault())
-        val monthName = dateFormat.format(Date()).capitalize()
+        val monthName = dateFormat.format(Date()).replaceFirstChar { 
+            if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() 
+        }
         rv.setTextViewText(R.id.tv_month_title, monthName)
 
         // Set up the RemoteViews object to use a RemoteViews adapter.

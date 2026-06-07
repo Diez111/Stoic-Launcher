@@ -1,5 +1,6 @@
 package com.diez.stoiclauncher.domain.repository
 
+import com.diez.stoiclauncher.domain.model.WidgetConfig
 import kotlinx.coroutines.flow.Flow
 
 interface SettingsRepository {
@@ -19,11 +20,11 @@ interface SettingsRepository {
     suspend fun setAccentColor(color: Int)
     
     // Widget persistence
-    suspend fun saveWidgetConfig(config: com.diez.stoiclauncher.domain.model.WidgetConfig)
-    suspend fun getAllWidgetConfigs(): List<com.diez.stoiclauncher.domain.model.WidgetConfig>
+    suspend fun saveWidgetConfig(config: WidgetConfig)
+    suspend fun getAllWidgetConfigs(): List<WidgetConfig>
     suspend fun deleteWidgetConfig(widgetId: Int)
     suspend fun clearAllWidgetConfigs()
-    val widgetConfigs: Flow<List<com.diez.stoiclauncher.domain.model.WidgetConfig>>
+    val widgetConfigs: Flow<List<WidgetConfig>>
     
     val gestureMappingsFlow: Flow<Map<String, String>>
     suspend fun setGestureMapping(trigger: String, action: String)

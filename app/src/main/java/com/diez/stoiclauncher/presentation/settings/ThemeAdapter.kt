@@ -16,8 +16,10 @@ class ThemeAdapter(
 
     var textColor: Int = android.graphics.Color.WHITE
         set(value) {
-            field = value
-            notifyDataSetChanged()
+            if (field != value) {
+                field = value
+                notifyItemRangeChanged(0, itemCount)
+            }
         }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ThemeViewHolder {

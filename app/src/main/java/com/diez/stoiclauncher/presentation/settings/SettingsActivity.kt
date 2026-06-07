@@ -10,7 +10,6 @@ import com.diez.stoiclauncher.R
 import kotlinx.coroutines.Dispatchers
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import kotlin.math.log10
@@ -244,17 +243,18 @@ class SettingsActivity : AppCompatActivity() {
         val btnHiddenApps = findViewById<android.view.View>(R.id.btn_hidden_apps)
         btnHiddenApps.setOnClickListener { showHiddenAppsManager() }
         
-        val btnResetWidgets = findViewById<android.view.View>(R.id.btn_reset_widgets)
-        btnResetWidgets.setOnClickListener {
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Limpiar Widgets")
-                .setMessage("¿Estás seguro? Se eliminarán todos los widgets de la pantalla de inicio.")
-                .setPositiveButton("Eliminar") { _, _ ->
-                     val wm = com.diez.stoiclauncher.presentation.widget.WidgetManager(this)
-                     wm.removeAllWidgets(null)
-                }
-                .setNegativeButton("Cancelar", null).show()
-        }
+         val btnResetWidgets = findViewById<android.view.View>(R.id.btn_reset_widgets)
+         btnResetWidgets.setOnClickListener {
+             androidx.appcompat.app.AlertDialog.Builder(this)
+                 .setTitle("Limpiar Widgets")
+                 .setMessage("¿Estás seguro? Se eliminarán todos los widgets de la pantalla de inicio.")
+                 .setPositiveButton("Eliminar") { _, _ ->
+                      lifecycleScope.launch {
+                          settingsRepository.clearAllWidgetConfigs()
+                      }
+                 }
+                 .setNegativeButton("Cancelar", null).show()
+         }
         
         val btnManageLimits = findViewById<android.view.View>(R.id.btn_manage_usage_limits)
         val tvUsageSubtitle = findViewById<android.widget.TextView>(R.id.tv_usage_status_subtitle)
@@ -288,38 +288,37 @@ class SettingsActivity : AppCompatActivity() {
         
         val btnIconPack = findViewById<android.view.View>(R.id.btn_icon_pack)
         val tvIconPackSubtitle = findViewById<android.widget.TextView>(R.id.tv_icon_pack_subtitle)
-        lifecycleScope.launch {
-            val appPreferences = com.diez.stoiclauncher.data.repository.AppPreferencesRepository(this@SettingsActivity)
-            appPreferences.iconPackPackageFlow.collect { pack ->
-                tvIconPackSubtitle.text = when (pack) {
-                    null -> "Predeterminado"
-                    "stoic_builtin" -> "Stoic Pack"
-                    "stoic_minimal" -> "Stoic Minimal"
-                    else -> try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(pack, 0)) } catch (e: Exception) { "Desconocido" }
-                }
-            }
-        }
-        btnIconPack.setOnClickListener {
-            val intent = android.content.Intent("com.novalauncher.THEME")
-            val resolveInfos = packageManager.queryIntentActivities(intent, 0)
-            val options = mutableListOf<Pair<String?, String>>()
-            options.add("stoic_builtin" to "Stoic Pack")
-            options.add("stoic_minimal" to "Stoic Minimal")
-            options.add(null to "Predeterminado")
-            resolveInfos.forEach {
-                val pkg = it.activityInfo.packageName; val label = it.loadLabel(packageManager).toString()
-                if (options.none { opt -> opt.first == pkg }) options.add(pkg to label)
-            }
-            val labels = options.map { it.second }.toTypedArray()
-            androidx.appcompat.app.AlertDialog.Builder(this)
-                .setTitle("Seleccionar Pack de Iconos")
-                .setItems(labels) { _, which ->
-                    lifecycleScope.launch {
-                        com.diez.stoiclauncher.data.repository.AppPreferencesRepository(this@SettingsActivity)
-                            .setIconPackPackage(options[which].first)
-                    }
-                }.setNegativeButton("Cancelar", null).show()
-        }
+         val appPreferences = appContainer.appPreferencesRepository
+         lifecycleScope.launch {
+             appPreferences.iconPackPackageFlow.collect { pack ->
+                 tvIconPackSubtitle.text = when (pack) {
+                     null -> "Predeterminado"
+                     "stoic_builtin" -> "Stoic Pack"
+                     "stoic_minimal" -> "Stoic Minimal"
+                     else -> try { packageManager.getApplicationLabel(packageManager.getApplicationInfo(pack, 0)) } catch (e: Exception) { "Desconocido" }
+                 }
+             }
+         }
+         btnIconPack.setOnClickListener {
+             val intent = android.content.Intent("com.novalauncher.THEME")
+             val resolveInfos = packageManager.queryIntentActivities(intent, 0)
+             val options = mutableListOf<Pair<String?, String>>()
+             options.add("stoic_builtin" to "Stoic Pack")
+             options.add("stoic_minimal" to "Stoic Minimal")
+             options.add(null to "Predeterminado")
+             resolveInfos.forEach {
+                 val pkg = it.activityInfo.packageName; val label = it.loadLabel(packageManager).toString()
+                 if (options.none { opt -> opt.first == pkg }) options.add(pkg to label)
+             }
+             val labels = options.map { it.second }.toTypedArray()
+             androidx.appcompat.app.AlertDialog.Builder(this)
+                 .setTitle("Seleccionar Pack de Iconos")
+                 .setItems(labels) { _, which ->
+                     lifecycleScope.launch {
+                         appPreferences.setIconPackPackage(options[which].first)
+                     }
+                 }.setNegativeButton("Cancelar", null).show()
+         }
     }
     
     override fun onResume() { super.onResume() }
@@ -363,8 +362,8 @@ class SettingsActivity : AppCompatActivity() {
                 lastAppliedLevel = -1
             } catch (_: Exception) {}
             maxAllStreams(mgr)
+            toastOnMain("Boost desactivado")
         }
-        toastOnMain("Boost desactivado")
     }
 
     private fun releaseBoostSilent() {

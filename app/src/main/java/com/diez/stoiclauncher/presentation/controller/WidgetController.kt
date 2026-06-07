@@ -21,6 +21,7 @@ class WidgetController(
 
     fun onStart() { widgetManager.startListening() }
     fun onStop() { widgetManager.stopListening() }
+    fun destroy() { widgetManager.destroy() }
 
     fun handleBackPress(): Boolean = widgetManager.handleBackPress()
     fun attachContainer(container: ViewGroup) { this.currentContainer = container }

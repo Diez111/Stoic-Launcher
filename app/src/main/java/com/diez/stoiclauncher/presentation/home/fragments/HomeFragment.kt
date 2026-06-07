@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.diez.stoiclauncher.R
 import com.diez.stoiclauncher.StoicApplication
 import com.diez.stoiclauncher.domain.model.AppModel
+import com.diez.stoiclauncher.domain.model.CategoryGroup
 import com.diez.stoiclauncher.presentation.home.HomeViewModel
 import com.diez.stoiclauncher.presentation.util.AppLaunchHelper
 import com.diez.stoiclauncher.presentation.util.ColorHelper
@@ -417,12 +418,6 @@ class HomeFragment : Fragment() {
         rvBubbles.viewTreeObserver.removeOnGlobalLayoutListener(bubbleLayoutListener)
     }
 }
-
-data class CategoryGroup(
-    val name: String,
-    val apps: List<AppModel>,
-    val originalName: String = name
-)
 
 class BubbleAdapter(
     private val monoFilter: ColorMatrixColorFilter,
